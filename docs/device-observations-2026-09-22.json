@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-22",
+  "method": "ADB read-only launch + UIAutomator compressed tree; no input or submit",
+  "device": {
+    "model": "23013RK75C",
+    "soc": "SM8475",
+    "android": "15",
+    "build": "AQ3A.250226.002",
+    "memTotalKiB": 7354276,
+    "physicalResolution": "1440x3200",
+    "effectiveResolution": "1080x2400",
+    "fontScale": 1.0
+  },
+  "apps": [
+    {
+      "participant": "kimi",
+      "package": "com.moonshot.kimichat",
+      "versionName": "2.6.1",
+      "versionCode": 308,
+      "observations": 1,
+      "nodeCount": 62,
+      "clickableCount": 17,
+      "editTextCount": 0,
+      "hasResourceIds": false,
+      "state": "Home in hold-to-speak mode; no EditText in sampled tree",
+      "inputVerified": false,
+      "sendVerified": false,
+      "threadRecoveryVerified": false,
+      "completeCaptureVerified": false
+    },
+    {
+      "participant": "doubao",
+      "package": "com.larus.nova",
+      "versionName": "14.9.0",
+      "versionCode": 14090001,
+      "observations": 1,
+      "nodeCount": 9,
+      "clickableCount": 3,
+      "editTextCount": 0,
+      "hasResourceIds": true,
+      "state": "Feature introduction bottom sheet obstructs chat; close_btn visible",
+      "inputVerified": false,
+      "sendVerified": false,
+      "threadRecoveryVerified": false,
+      "completeCaptureVerified": false
+    },
+    {
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "versionName": "1.7.8",
+      "versionCode": 175,
+      "observations": 1,
+      "nodeCount": 10,
+      "clickableCount": 1,
+      "editTextCount": 0,
+      "hasResourceIds": false,
+      "state": "Version-update modal exposes only upgrade action; chat observation blocked",
+      "inputVerified": false,
+      "sendVerified": false,
+      "threadRecoveryVerified": false,
+      "completeCaptureVerified": false
+    }
+  ],
+  "accessibilityFollowup": {
+    "userEnabled": true,
+    "participant": "kimi",
+    "version": "2.6.1 (308)",
+    "method": "app InspectionService / debug metadata-only dumpsys",
+    "nodeCount": 62,
+    "truncated": false,
+    "windowScreenshot": "SUCCESS_IN_MEMORY",
+    "armedAfterCapture": false,
+    "externalWrites": 0,
+    "deepseekInstalledVersionNow": "2.5.2 (273)"
+  }
+}

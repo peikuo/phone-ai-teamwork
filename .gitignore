@@ -1,0 +1,18 @@
+.gradle/
+.native/
+**/build/
+local.properties
+*.iml
+.idea/
+*.gguf
+*.task
+captures/
+# Local build and test byproducts
+.kotlin/
+app/.cxx/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Unreferenced local image
+ChatGPT Image Sep 24, 2026, 01_21_40 PM.png

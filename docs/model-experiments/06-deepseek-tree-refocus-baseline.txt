@@ -1,0 +1,15 @@
+state=FINISHED
+package=com.deepseek.chat
+version=2.5.2 (273)
+backend=llama.cpp@7ab4ee7baad2d920464cbacfad4f4b07cf111fd2 / CPU / JNI
+load_ms=0（0 表示复用实例）
+step_ms=30728
+sampled_peak_pss_kib=2252751（250ms 采样，非精确峰值）
+image=false
+parse=PARSED_NOT_AUTHORIZED
+proposal=PAUSE
+node=none
+selected_editable=null
+selected_bounds=null
+editable_nodes=0
+未执行任何动作；这不是 Guardrail 放行。

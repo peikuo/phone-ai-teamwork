@@ -1,0 +1,31 @@
+{
+  "model": {
+    "source": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF",
+    "revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+    "filename": "Qwen3VL-2B-Instruct-Q4_K_M.gguf",
+    "downloadSource": "https://modelscope.cn/models/Qwen/Qwen3-VL-2B-Instruct-GGUF",
+    "downloadRevision": "1d49f1a70c0c1ea52f82fd46ea44b388183aa16c",
+    "license": "Apache-2.0",
+    "quantization": "Q4_K_M",
+    "sha256": "089d75c52f4b7ffc56ba998ffc50aae89fcafc755f9e7208aacca281dca6c2ae",
+    "bytes": 1107409952,
+    "backend": "llama.cpp@7ab4ee7baad2d920464cbacfad4f4b07cf111fd2 / CPU / JNI"
+  },
+  "projector": {
+    "source": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF",
+    "revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+    "filename": "mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf",
+    "downloadSource": "https://modelscope.cn/models/Qwen/Qwen3-VL-2B-Instruct-GGUF",
+    "downloadRevision": "1d49f1a70c0c1ea52f82fd46ea44b388183aa16c",
+    "license": "Apache-2.0",
+    "quantization": "Q8_0",
+    "sha256": "f9a68fabba69c3b81e153367b2c7521030b0fa8bb0de400c9599c8e6725f9c82",
+    "bytes": 445053216,
+    "backend": "llama.cpp@7ab4ee7baad2d920464cbacfad4f4b07cf111fd2 / CPU / JNI"
+  },
+  "deviceImport": {
+    "method": "adb push to staging + run-as to app-private files/models; development-only",
+    "verifiedOnDevice": true,
+    "runtimeDownload": false
+  }
+}

@@ -1,0 +1,283 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "id": "ds.answer.complete.v1",
+      "level": "small",
+      "owner": "app-adapter+state",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "已有真实 user 消息与 DeepSeek 回答；检查 assistant 角色、完成与全文",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "CAPTURE-01",
+        "THREAD-01"
+      ],
+      "depends_on": [],
+      "blocked_until": [
+        "verified_deepseek_assistant_message_profile"
+      ]
+    },
+    {
+      "id": "ds.input.visible.v1",
+      "level": "small",
+      "owner": "local-model",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "手动打开 DeepSeek 空白聊天页并展开文字输入框；无弹窗和已有草稿",
+      "kind": "model_proposal",
+      "objective": "input",
+      "expect": {
+        "proposal": "FOCUS_INPUT",
+        "selected_editable": "true"
+      },
+      "capabilities": [
+        "MODEL-02"
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "ds.launch.target.v1",
+      "level": "small",
+      "owner": "local-model",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "从 Android 启动页或最近任务页识别 DeepSeek 目标；先只读提议，不打开",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "MODEL-04",
+        "NAV-01"
+      ],
+      "depends_on": [],
+      "blocked_until": [
+        "verified_launcher_observation",
+        "model_launch_protocol"
+      ]
+    },
+    {
+      "id": "ds.send.confirm.v1",
+      "level": "small",
+      "owner": "phone-tools+app-adapter",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "输入区与 Store 发送 payload 完全一致；必须确认当前会话中 user 消息",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "SEND-01",
+        "THREAD-01"
+      ],
+      "depends_on": [
+        "ds.send.visible.v1"
+      ],
+      "blocked_until": [
+        "verified_send_and_user_message_profile"
+      ]
+    },
+    {
+      "id": "ds.send.visible.v1",
+      "level": "small",
+      "owner": "local-model",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "DeepSeek 输入框中已有刚才的固定公开测试题；只识别发送控件，不点击",
+      "kind": "model_proposal",
+      "objective": "send",
+      "expect": {
+        "proposal": "FOCUS_SEND",
+        "send_label_match": "true"
+      },
+      "capabilities": [
+        "MODEL-04"
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "ds.write.kimi.v1",
+      "level": "small",
+      "owner": "workflow+agent+phone-tools",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "Store 内有已核验的 Kimi 完整回答；DeepSeek 目标空输入可确认",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "EXEC-01",
+        "THREAD-01"
+      ],
+      "depends_on": [
+        "kimi.answer.complete.v1",
+        "ds.input.visible.v1"
+      ],
+      "blocked_until": [
+        "verified_kimi_message_in_store",
+        "source_bound_payload_adapter"
+      ]
+    },
+    {
+      "id": "kimi.answer.complete.v1",
+      "level": "small",
+      "owner": "app-adapter+state",
+      "participant": "kimi",
+      "package": "com.moonshot.kimichat",
+      "version": "2.6.1 (308)",
+      "setup": "Kimi 有一个真实已完成回答；独立核验角色、完成信号与全文",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "CAPTURE-01",
+        "APPS-01"
+      ],
+      "depends_on": [],
+      "blocked_until": [
+        "verified_kimi_assistant_message_profile"
+      ]
+    },
+    {
+      "id": "kimi.voice.pause.v1",
+      "level": "small",
+      "owner": "local-model",
+      "participant": "kimi",
+      "package": "com.moonshot.kimichat",
+      "version": "2.6.1 (308)",
+      "setup": "手动打开 Kimi 的语音输入页；确认无文字输入框",
+      "kind": "model_proposal",
+      "objective": "input",
+      "expect": {
+        "proposal": "PAUSE",
+        "editable_nodes": "0"
+      },
+      "capabilities": [
+        "MODEL-02"
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "ds.open_and_draft.v1",
+      "level": "medium",
+      "owner": "model+agent+phone-tools+state",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "在已确认来源条件下组合打开 DeepSeek 与写入 Kimi 原文",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "NAV-01",
+        "MODEL-04",
+        "EXEC-01",
+        "THREAD-01"
+      ],
+      "depends_on": [
+        "ds.launch.target.v1",
+        "ds.write.kimi.v1"
+      ],
+      "blocked_until": [
+        "verified_navigation_and_relay_adapter"
+      ]
+    },
+    {
+      "id": "ds.public_draft.v1",
+      "level": "medium",
+      "owner": "agent+phone-tools+state",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "先清除或确认没有旧草稿；本用例写入固定公开测试题并在发送前停止",
+      "kind": "public_stage",
+      "expect": {
+        "state": "PAUSED",
+        "turn": "STAGED",
+        "pendingIntent": "false",
+        "submitted": "false"
+      },
+      "capabilities": [
+        "MODEL-02",
+        "GUARD-01",
+        "EXEC-01",
+        "STATE-01"
+      ],
+      "depends_on": [
+        "ds.input.visible.v1"
+      ]
+    },
+    {
+      "id": "ds.send_and_capture.v1",
+      "level": "medium",
+      "owner": "agent+phone-tools+app-adapter+state",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "组合发送、送达确认、回答完成、保存",
+      "kind": "capability_pending",
+      "expect": {
+        "event": "STEP_FINISHED"
+      },
+      "capabilities": [
+        "SEND-01",
+        "CAPTURE-01",
+        "THREAD-01"
+      ],
+      "depends_on": [
+        "ds.send.confirm.v1",
+        "ds.answer.complete.v1"
+      ],
+      "blocked_until": [
+        "verified_send_capture_adapter"
+      ]
+    },
+    {
+      "id": "kimi.answer_to_ds.v1",
+      "level": "long",
+      "owner": "workflow+model+agent+phone-tools+state+app-adapters",
+      "participant": "deepseek",
+      "package": "com.deepseek.chat",
+      "version": "2.5.2 (273)",
+      "setup": "Store 中有带完整性与来源证据的 Kimi 回答；DeepSeek 目标会话已核实",
+      "kind": "relay",
+      "expect": {
+        "event": "SCENARIO_COMPLETED",
+        "stored_assistant_reply": "complete"
+      },
+      "capabilities": [
+        "NAV-01",
+        "MODEL-04",
+        "SEND-01",
+        "THREAD-01",
+        "CAPTURE-01",
+        "STATE-01",
+        "RUNTIME-01"
+      ],
+      "depends_on": [
+        "kimi.answer.complete.v1",
+        "ds.open_and_draft.v1",
+        "ds.send_and_capture.v1"
+      ],
+      "blocked_until": [
+        "verified_kimi_message_in_store",
+        "verified_send_adapter",
+        "verified_assistant_capture"
+      ]
+    }
+  ]
+}
