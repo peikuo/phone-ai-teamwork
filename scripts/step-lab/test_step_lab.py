@@ -15,9 +15,15 @@ class StepLabTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'PACKAGE_OUTSIDE_PHONE_LAB'):
             lab.front_package('test-phone', 'com.example.other')
 
+    def test_draft_report_requires_current_run_id(self):
+        self.assertFalse(lab.matching_draft_report({'run_id': 'earlier', 'state': 'VERIFIED'}, 'current'))
+        self.assertFalse(lab.matching_draft_report({'state': 'VERIFIED'}, 'current'))
+        self.assertTrue(lab.matching_draft_report({'run_id': 'current', 'state': 'VERIFIED'}, 'current'))
+
     def test_catalog_has_progressive_acyclic_cases(self):
         cases = lab.catalog()
-        self.assertEqual(12, len(cases))
+        self.assertEqual(13, len(cases))
+        self.assertEqual('public_draft_check', cases['kimi.public_draft_exact.v1']['kind'])
         self.assertEqual('small', cases['ds.send.visible.v1']['level'])
         self.assertEqual('long', cases['kimi.answer_to_ds.v1']['level'])
         self.assertIn('verified_kimi_message_in_store', cases['kimi.answer_to_ds.v1']['blocked_until'])

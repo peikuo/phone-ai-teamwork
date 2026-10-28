@@ -12,7 +12,8 @@ import java.io.File
 /** Developer/user-invoked, fixed public task. No arbitrary outgoing text accepted by debug entry points. */
 object SingleExchangeExperiment {
     /** Read-only exact-draft check for the one staged public Kimi task. */
-    suspend fun inspectKimiDraft(app: TeamworkApp) {
+    suspend fun inspectKimiDraft(app: TeamworkApp, runId: String) {
+        require(runId.matches(Regex("[A-Za-z0-9_-]{1,64}"))) { "INVALID_RUN_ID" }
         if (!app.operationBusy.compareAndSet(false, true)) return
         val report = File(app.filesDir, "kimi-draft-check-last.txt")
         try {
@@ -39,11 +40,11 @@ object SingleExchangeExperiment {
                 first.id != second.id && first.windowId == second.windowId &&
                 input.path == secondInput.path && input.bounds == secondInput.bounds) { "KIMI_DRAFT_NOT_STABLE" }
             require(app.store.get(task.id) == task) { "STATE_CHANGED" }
-            report.writeText("state=VERIFIED\nparticipant=kimi\ninputLength=${payload.text.length}" +
+            report.writeText("state=VERIFIED\nrun_id=$runId\nparticipant=kimi\ninputLength=${payload.text.length}" +
                 "\ninputHash=${payload.hash}\nsubmitted=false\nstoreChanged=false")
         } catch (e: Exception) {
             val reason = e.message?.takeIf { it.matches(Regex("[A-Z0-9_]+")) } ?: "KIMI_DRAFT_CHECK_ERROR"
-            report.writeText("state=ERROR\nreason=$reason\nsubmitted=false\nstoreChanged=false")
+            report.writeText("state=ERROR\nrun_id=$runId\nreason=$reason\nsubmitted=false\nstoreChanged=false")
         } finally { app.operationBusy.set(false) }
     }
     /** Read-only complete-reply capture after the single fixed public Doubao send. */

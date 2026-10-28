@@ -2,6 +2,25 @@
   "schema": 1,
   "cases": [
     {
+      "id": "kimi.public_draft_exact.v1",
+      "level": "small",
+      "owner": "phone-tools+app-adapter+state",
+      "participant": "kimi",
+      "package": "com.moonshot.kimichat",
+      "version": "3.1.3 (378)",
+      "setup": "Fixed public prompt is already staged in the bound empty Kimi thread; read-only exact comparison",
+      "kind": "public_draft_check",
+      "expect": {
+        "state": "VERIFIED",
+        "participant": "kimi",
+        "inputLength": "277",
+        "submitted": "false",
+        "storeChanged": "false"
+      },
+      "capabilities": ["EXEC-01", "THREAD-01", "STATE-01"],
+      "depends_on": []
+    },
+    {
       "id": "ds.answer.complete.v1",
       "level": "small",
       "owner": "app-adapter+state",

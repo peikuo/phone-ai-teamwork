@@ -66,7 +66,8 @@ class ExperimentReceiver : BroadcastReceiver() {
             return
         }
         if (intent.action == "org.phoneai.teamwork.CHECK_KIMI_PUBLIC_DRAFT") {
-            app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.inspectKimiDraft(app) }
+            app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.inspectKimiDraft(
+                app, intent.getStringExtra("run_id") ?: "manual") }
             return
         }
         if (intent.action == "org.phoneai.teamwork.STAGE_DOUBAO_PUBLIC_PROBE") {

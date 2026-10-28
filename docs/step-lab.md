@@ -1,5 +1,9 @@
 # 小模型分步测试规则库
 
+## 2026-10-29 update
+
+The catalog now has 13 cases. `kimi.public_draft_exact.v1` is a read-only small step: it runs the app's two-observation canonical-draft check against the already staged fixed public Kimi task. An initial run recorded `state=VERIFIED`, `inputLength=277`, `submitted=false`, `storeChanged=false`, and zero screenshots. Astra found that the host runner could misattribute a stale report, so it now passes and requires a unique run ID. The first run is retained as diagnostic evidence, not counted as a fully correlated script pass. The first run ID was `8776ae1472854a3f8541a6a1`; its database is Git-ignored. After the run-ID fix and APK reinstall, a second attempt ended `REPORT_TIMEOUT` while Android still listed the accessibility service as enabled but binding, so the corrected script has no real PASS yet. The earlier app-side two-observation check remains verified. None of these checks authorize Kimi send or count toward the five-question demonstration. The host screenshot path remains disabled.
+
 更新：2026-09-23。用例目录：[`cases.json`](../scripts/step-lab/cases.json)；运行器：[`step_lab.py`](../scripts/step-lab/step_lab.py)。这是一套真实小模型实验的测试入口，不把 Codex 判断或模拟提议算作小模型成绩。当前 12 个用例：3 个已接线的只读小步骤、1 个已接线的固定公开题暂存中步骤，以及 8 个标为能力待确认的后续小步骤、中步骤和 Kimi → DeepSeek 长步骤。
 
 ## 责任与判定

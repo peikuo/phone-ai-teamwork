@@ -30,7 +30,7 @@ def catalog():
     assert len(by_id) == len(cases)
     for c in cases:
         assert re.fullmatch(r'[a-z0-9_.-]+', c['id'])
-        assert c['level'] in LEVELS and c['kind'] in {'model_proposal', 'public_stage', 'relay', 'capability_pending'}
+        assert c['level'] in LEVELS and c['kind'] in {'model_proposal', 'public_stage', 'public_draft_check', 'relay', 'capability_pending'}
         assert c['owner'] and c['setup'] and c['expect'] and c['capabilities']
         for dep in c['depends_on']:
             assert dep in by_id and LEVELS[by_id[dep]['level']] <= LEVELS[c['level']]
@@ -116,6 +116,10 @@ def report(serial, filename):
 
 def fields(raw):
     return dict(line.split('=', 1) for line in raw.splitlines() if '=' in line)
+
+
+def matching_draft_report(actual, run_id):
+    return actual.get('run_id') == run_id and actual.get('state') in {'VERIFIED', 'ERROR'}
 
 
 def previous_pass(db, case_id, serial, version):
@@ -222,6 +226,25 @@ def run_case(args):
                 if actual.get('taskId') != previous and actual.get('state') not in {None, 'RUNNING'}:
                     break
                 time.sleep(0.7)
+            else:
+                raise RuntimeError('REPORT_TIMEOUT')
+        elif case['kind'] == 'public_draft_check':
+            if case['participant'] != 'kimi' or not front_package(device, case['package']):
+                raise Blocked('KIMI_STAGED_PAGE_NOT_FOREGROUND')
+            adb(device, 'shell', 'run-as', 'org.phoneai.teamwork', 'rm', '-f',
+                'files/kimi-draft-check-last.txt')
+            adb(device, 'shell', 'am', 'broadcast', '-a', 'org.phoneai.teamwork.CHECK_KIMI_PUBLIC_DRAFT',
+                '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver', '--es', 'run_id', run_id, timeout=12)
+            end = time.monotonic() + args.timeout
+            while time.monotonic() < end:
+                try:
+                    actual = fields(report(device, 'kimi-draft-check-last.txt'))
+                except Exception:
+                    time.sleep(0.5)
+                    continue
+                if matching_draft_report(actual, run_id):
+                    break
+                time.sleep(0.5)
             else:
                 raise RuntimeError('REPORT_TIMEOUT')
         status, reason, mismatches = evaluate(case['expect'], actual)
