@@ -48,6 +48,6 @@ The overnight runner should checkpoint every step and use bounded waits and retr
 
 The five questions use invented, non-sensitive data and English prompts and responses. Low-resolution diagnostic screenshots stay in Git-ignored `captures/`. After successful device runs, record short clips of the real app flow, crop the entire phone status bar and any personal UI, inspect the exported frames for private content, and upload only the reviewed clips. The architecture diagram should show the six responsibilities and the final result returning to Phone AI Teamwork. Publishing media to a private GitHub repository and making that repository public are separate steps.
 
-## Current gap
+## Current gap — updated 2026-10-29
 
-As of this plan, the only verified device action is one DeepSeek input staging and exact readback. Sending, complete answer capture, conversation return, and the final-result screen are not yet implemented and verified. The phone is connected, but Android currently reports no enabled accessibility services; that service must be enabled before device work resumes.
+The first one-app exchange gate has a real-device positive result: DeepSeek fixed public prompt staging, one model-selected send, complete answer verification, Room capture, and display in Phone AI Teamwork. See [the device evidence](single-exchange-experiments/02-deepseek-verified-2026-10-29.md). Kimi and Doubao exchange adapters, conversation return, seven-step orchestration, five-case repeatability, and privacy-reviewed demonstration media remain open. The one-app result does not validate those later gates.

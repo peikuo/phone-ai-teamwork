@@ -33,6 +33,8 @@ class Guardrail {
         if (target != o.nodes.find { it.path == target.nodePath }?.let(o::target)) return deny("STALE_OR_FORGED_TARGET")
         val node = o.nodes.single { it.path == target.nodePath }
         if (!node.enabled || !node.visible) return ask("TARGET_NOT_INTERACTIVE")
+        if (p.action == Action.SUBMIT && (!node.clickable || 16 !in node.supportedActions))
+            return ask("SEND_TARGET_NOT_CLICKABLE")
         val role = when(p.action) {
             Action.WRITE, Action.FOCUS_INPUT -> NodeRole.INPUT; Action.SUBMIT -> NodeRole.SEND
             Action.HISTORY -> NodeRole.HISTORY; Action.NEW_THREAD -> NodeRole.NEW_THREAD

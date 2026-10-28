@@ -29,7 +29,7 @@ class OfflineReplayTest {
             val p = state.participants.single { it.id == state.current!!.participantId }
             return UiObservation("obs-${tick++}", state.id, p.packageName, 1, tick, tick,
                 listOf(UiNode("0/1", "input", inputText, "", true, true, "0 0 100 100", NodeRole.INPUT),
-                    UiNode("0/2", "send", "", "send", false, true, "100 0 150 50", NodeRole.SEND)),
+                    UiNode("0/2", "send", "", "send", false, true, "100 0 150 50", NodeRole.SEND, supportedActions = setOf(16))),
                 p.version, false, false, false, true)
         }
         fun effect(action: Action, o: UiObservation = observation(if (action == Action.SUBMIT) payload().text else "")): Verdict {

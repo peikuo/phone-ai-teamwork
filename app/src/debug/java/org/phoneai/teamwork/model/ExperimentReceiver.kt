@@ -18,6 +18,14 @@ class ExperimentReceiver : BroadcastReceiver() {
             app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.stage(app) }
             return
         }
+        if (intent.action == "org.phoneai.teamwork.SUBMIT_PUBLIC_PROBE") {
+            app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.submit(app) }
+            return
+        }
+        if (intent.action == "org.phoneai.teamwork.VERIFY_PUBLIC_PROBE") {
+            app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.verifyReply(app) }
+            return
+        }
         if (intent.action == "org.phoneai.teamwork.ARM_INSPECTION") {
             val target = Targets.all.singleOrNull { it.id == intent.getStringExtra("participant") } ?: return
             val participant = target.installed(context) ?: return

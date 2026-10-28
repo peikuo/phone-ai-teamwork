@@ -59,7 +59,7 @@ class MainActivity : Activity() {
     private fun home() {
         page = "home"; frame("Phone AI Teamwork")
         text("v0.3 · 开发 POC", 18f)
-        text("当前支持任务草案、三款 App 单次观察和本地模型提议实验。自动导航、写入、发送、抓取和 thread 恢复尚未启用。")
+        text("当前支持任务草案、三款 App 单次观察、本地模型提议实验，以及固定公开 DeepSeek 单轮收发验证。完整协作流程仍在开发。")
         text("本地识别和状态无需额外云端服务器。未来启用协作后，获准内容会交给所选 AI App，并受各自数据处理规则约束。")
         button("创建协作任务 / 预览 Recipe") { newTask() }
         button("能力状态与待验证功能") { capabilityPage() }
@@ -119,7 +119,19 @@ class MainActivity : Activity() {
             runOnUiThread {
                 if (isDestroyed || page != "task:$taskId") return@runOnUiThread
                 text(task.goal, 20f)
-                text("${task.status} · ${task.reason.orEmpty()}\n任务 ${task.id}\n当前步骤 ${task.cursor+1}/${task.steps.size}")
+                text("${task.status} · ${task.reason.orEmpty()}\n任务 ${task.id}\n当前步骤 ${minOf(task.cursor+1, task.steps.size)}/${task.steps.size}")
+                val answer = task.finalAnswer() ?: task.verifiedSingleReply()
+                answer?.let {
+                    text("${if (task.steps.size == 1) "Verified test response" else "Final answer"} · ${task.participants.singleOrNull { p -> p.id == answer.participantId }?.label ?: answer.participantId}", 20f)
+                    text(answer.text, 18f).apply {
+                        setBackgroundColor(Color.rgb(238, 245, 250))
+                        setPadding(16, 20, 16, 20)
+                    }
+                    text(if (task.steps.size == 1) "Saved in Phone AI Teamwork · verified app response"
+                        else "Saved in Phone AI Teamwork · ${answer.sourceIds.size} verified source responses")
+                }
+                if (task.status == TaskStatus.COMPLETED && answer == null)
+                    text("Final answer unavailable: stored result requires verification.")
                 task.steps.forEachIndexed { i, s -> text("${i+1}. ${s.participantId} · ${s.template} · ${s.status}\n来源步骤：${s.sourceStepIds.map { source -> task.steps.indexOfFirst { it.id == source } + 1 }}") }
                 task.current?.payloadId?.let { task.payloads[it] }?.let { payload ->
                     button("查看完整待发正文（仅本地）") { AlertDialog.Builder(this).setTitle("${payload.recipient} / ${payload.hash.take(12)}").setMessage(payload.text).setPositiveButton("关闭", null).show() }

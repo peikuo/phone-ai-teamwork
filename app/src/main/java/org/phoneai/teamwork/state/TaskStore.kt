@@ -101,4 +101,9 @@ class TaskStore(context: Context) : AgentState {
         update(id, revision, "SEND_VERIFIED", evidenceId) { TurnLifecycle.confirmSend(it, intentId, exactUserMessage, evidenceId) }
     fun capture(id: String, revision: Long, message: Message): TaskState =
         update(id, revision, "RESPONSE_CAPTURED", "VERIFIED_MESSAGE_STORED") { TurnLifecycle.capture(it, message) }
+    fun completeVerifiedExchange(id: String, revision: Long, intentId: String, exactUserMessage: String,
+        evidenceId: String, message: Message): TaskState =
+        update(id, revision, "EXCHANGE_VERIFIED", evidenceId) {
+            TurnLifecycle.capture(TurnLifecycle.confirmSend(it, intentId, exactUserMessage, evidenceId), message)
+        }
 }

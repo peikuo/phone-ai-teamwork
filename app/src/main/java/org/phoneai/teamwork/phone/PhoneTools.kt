@@ -29,7 +29,7 @@ class GuardedPhoneTools(private val store: TaskStore, private val guardrail: Gua
     override suspend fun execute(taskId: String, proposal: ProposedAction): ToolResult {
         val before = store.get(taskId)
         if (proposal.action == Action.PAUSE) { store.pause(taskId, "AGENT_PAUSE"); return ToolResult(true, "PAUSED") }
-        if (proposal.action != Action.WRITE) {
+        if (proposal.action !in setOf(Action.WRITE, Action.SUBMIT)) {
             val feature = when (proposal.action) {
                 Action.SUBMIT, Action.CAPTURE -> "SINGLE_EXCHANGE"
                 Action.LAUNCH, Action.HISTORY, Action.NEW_THREAD, Action.SELECT_THREAD, Action.BACK -> "AUTO_ENTER"
@@ -62,19 +62,28 @@ class GuardedPhoneTools(private val store: TaskStore, private val guardrail: Gua
                 try {
                     val expected = instant.nodes.single { it.path == latest.target.nodePath }
                     val bounds = android.graphics.Rect().also(node::getBoundsInScreen).flattenToString()
-                    if (!node.isEditable || !node.isEnabled || !node.isVisibleToUser || InspectionService.inputText(node) != expected.text ||
+                    if (!node.isEnabled || !node.isVisibleToUser || InspectionService.inputText(node) != expected.text ||
                         node.className?.toString().orEmpty() != expected.className || node.viewIdResourceName != expected.resourceId ||
                         node.contentDescription?.toString().orEmpty() != expected.description || bounds != expected.bounds ||
-                        node.actionList.none { it.id == AccessibilityNodeInfo.ACTION_SET_TEXT })
+                        (action.action == Action.WRITE && (!node.isEditable || expected.role != NodeRole.INPUT ||
+                            node.actionList.none { it.id == AccessibilityNodeInfo.ACTION_SET_TEXT })) ||
+                        (action.action == Action.SUBMIT && (!node.isClickable || expected.role != NodeRole.SEND ||
+                            node.actionList.none { it.id == AccessibilityNodeInfo.ACTION_CLICK })))
                         return@atRevision ToolResult(false, "LIVE_NODE_MISMATCH")
-                    val text = current.payloads.getValue(requireNotNull(latest.payloadId)).text
-                    val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,
-                        Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text) })
-                    ToolResult(ok, if (ok) "WRITE_REQUESTED" else "WRITE_NOT_ACKNOWLEDGED")
+                    if (action.action == Action.SUBMIT) {
+                        val ok = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        ToolResult(ok, if (ok) "SUBMIT_REQUESTED_AWAITING_EVIDENCE" else "SUBMIT_RESULT_UNCERTAIN")
+                    } else {
+                        val text = current.payloads.getValue(requireNotNull(latest.payloadId)).text
+                        val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,
+                            Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text) })
+                        ToolResult(ok, if (ok) "WRITE_REQUESTED" else "WRITE_NOT_ACKNOWLEDGED")
+                    }
                 } finally { node.recycle() }
             }
         }
         if (!result.allowed) return pause(taskId, result.reason)
+        if (proposal.action == Action.SUBMIT) return result
         repeat(10) {
             delay(200)
             val current = store.get(taskId)

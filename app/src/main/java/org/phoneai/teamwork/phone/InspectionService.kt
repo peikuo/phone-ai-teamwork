@@ -142,6 +142,19 @@ class InspectionService : AccessibilityService() {
             sample.observation.nodes.filter { it.editable }.forEach {
                 writer.println("phoneai.input path=${it.path} class=${it.className} textLength=${it.text.length} enabled=${it.enabled} visible=${it.visible} actions=${it.supportedActions} bounds=${it.bounds}")
             }
+            if (sample.observation.packageName == "com.deepseek.chat") {
+                sample.observation.nodes.filter {
+                    it.text.startsWith("[Phone AI Teamwork task ") || it.text == "POC_OK_7319" ||
+                        it.description in setOf("Copy", "Regenerate")
+                }.forEach {
+                    val kind = when {
+                        it.text.startsWith("[Phone AI Teamwork task ") -> "public_prompt"
+                        it.text == "POC_OK_7319" -> "public_answer"
+                        else -> it.description.lowercase()
+                    }
+                    writer.println("phoneai.publicNode kind=$kind path=${it.path} visible=${it.visible} enabled=${it.enabled} bounds=${it.bounds}")
+                }
+            }
         }
     }
     companion object {

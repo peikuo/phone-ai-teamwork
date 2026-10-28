@@ -18,7 +18,7 @@ class CoreSafetyTest {
         steps = listOf(step)+recipe.steps.drop(1), payloads = mapOf(payload.id to payload),
         bindings = mapOf("kimi" to ThreadBinding(recipe.id,"kimi","known first","known latest","fixture")))
     private val input = UiNode("0/1","fixture/input","","",true,true,"0 0 100 100",NodeRole.INPUT)
-    private val send = UiNode("0/2","fixture/send","Send","",false,true,"100 0 120 100",NodeRole.SEND)
+    private val send = UiNode("0/2","fixture/send","Send","",false,true,"100 0 120 100",NodeRole.SEND, supportedActions=setOf(16))
     private val observation = UiObservation("fixture-observation",task.id,"test.kimi",1,1,now,listOf(input,send),"fixture",false,false,false,true)
     private val evidence = ThreadEvidence(task.id,"kimi",observation.id,true,true)
     private val write = ProposedAction(Action.WRITE,"kimi",observation.target(input),payload.id)
@@ -53,6 +53,8 @@ class CoreSafetyTest {
         val proposal=ProposedAction(Action.SUBMIT,"kimi",observation.target(send),payload.id)
         assertEquals(GuardrailDecision.NEEDS_USER,decision(t=staged,p=proposal))
         assertEquals(GuardrailDecision.ALLOW,decision(t=staged,p=proposal,o=observation.copy(nodes=listOf(input.copy(text=payload.text),send))))
+        assertEquals(GuardrailDecision.NEEDS_USER,decision(t=staged,p=proposal,o=observation.copy(nodes=listOf(input.copy(text=payload.text),send.copy(clickable=false)))))
+        assertEquals(GuardrailDecision.NEEDS_USER,decision(t=staged,p=proposal,o=observation.copy(nodes=listOf(input.copy(text=payload.text),send.copy(supportedActions=emptySet())))))
     }
     @Test fun expiredObservationAndBudgetNeedUser() {
         assertEquals(GuardrailDecision.NEEDS_USER,decision(o=observation.copy(at=0)))

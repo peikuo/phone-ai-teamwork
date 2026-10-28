@@ -20,6 +20,8 @@ data class TaskState(
     val status: TaskStatus = TaskStatus.CREATED, val cursor: Int = 0, val revision: Long = 0,
     val bindings: Map<String, ThreadBinding> = emptyMap(), val payloads: Map<String, Payload> = emptyMap(),
     val messages: Map<String, Message> = emptyMap(), val maxActionsPerStep: Int = 40,
-    val reason: String? = null, val pendingIntent: String? = null, val deadline: Long = 0
+    val reason: String? = null, val pendingIntent: String? = null, val deadline: Long = 0,
+    // Missing in older snapshots; payload content selects the legacy template when needed.
+    val promptVersion: Int? = 2
 ) { val current: Step? get() = steps.getOrNull(cursor) }
 data class Journal(val id: String = id(), val taskId: String, val turnId: String?, val kind: String, val reason: String, val at: Long = System.currentTimeMillis())
