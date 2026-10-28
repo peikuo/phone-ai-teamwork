@@ -11,6 +11,125 @@ import java.io.File
 
 /** Developer/user-invoked, fixed public task. No arbitrary outgoing text accepted by debug entry points. */
 object SingleExchangeExperiment {
+    /** Read-only complete-reply capture after the single fixed public Doubao send. */
+    suspend fun verifyDoubaoReply(app: TeamworkApp) {
+        if (!app.operationBusy.compareAndSet(false, true)) return
+        val report = File(app.filesDir, "single-exchange-last.txt")
+        var taskId: String? = null
+        var diagnostics = ""
+        try {
+            app.recovered.await()
+            taskId = report.readLines().single { it.startsWith("taskId=") }.substringAfter('=')
+            val task = app.store.get(taskId)
+            val participant = task.participants.singleOrNull()
+            require(task.goal == DeepSeekProbeProfile.GOAL && task.steps.size == 1 &&
+                task.status == TaskStatus.NEEDS_USER && task.current?.status == TurnStatus.SUBMITTING &&
+                !task.pendingIntent.isNullOrBlank() && participant?.id == "doubao" &&
+                participant.packageName == "com.larus.nova" && participant.version == "14.9.0 (14090001)") {
+                "UNCERTAIN_SEND_REQUIRED"
+            }
+            val payload = task.current?.payloadId?.let(task.payloads::get)
+            require(payload != null && org.phoneai.teamwork.workflow.PayloadBuilder.matches(task, task.current!!, payload)) {
+                "PAYLOAD_MISMATCH"
+            }
+            val active = app.store.update(task.id, task.revision, "VERIFY_STARTED", "OBSERVE_DOUBAO_REPLY") {
+                it.copy(status = TaskStatus.RUNNING, deadline = System.currentTimeMillis() + 30000)
+            }
+            report.writeText("state=RUNNING\ntaskId=$taskId\nphase=VERIFY_DOUBAO_REPLY")
+            val phone = GuardedPhoneTools(app.store, Guardrail())
+            val first = requireNotNull(phone.observe(active)) { "OBSERVATION_UNAVAILABLE" }
+            diagnostics = DoubaoPublicReplyProfile.diagnostics(active, first)
+            val firstProof = requireNotNull(DoubaoPublicReplyProfile.verify(active, first, System.currentTimeMillis())) {
+                "REPLY_PROFILE_UNVERIFIED"
+            }
+            delay(750)
+            val unchanged = app.store.get(task.id)
+            require(unchanged.status == TaskStatus.RUNNING && unchanged.revision == active.revision &&
+                unchanged.pendingIntent == active.pendingIntent) { "STATE_CHANGED" }
+            val second = requireNotNull(phone.observe(unchanged)) { "OBSERVATION_UNAVAILABLE" }
+            diagnostics = DoubaoPublicReplyProfile.diagnostics(unchanged, second)
+            val secondProof = requireNotNull(DoubaoPublicReplyProfile.verify(unchanged, second, System.currentTimeMillis())) {
+                "REPLY_PROFILE_UNVERIFIED"
+            }
+            require(firstProof == secondProof && first.id != second.id) { "REPLY_CHANGED_DURING_VERIFY" }
+            val message = Message(id(), task.id, requireNotNull(unchanged.current).id, "doubao", secondProof.answer,
+                Completeness.COMPLETE, "doubao-public-reply-${second.id}", payload.sourceIds)
+            val completed = app.store.completeVerifiedExchange(task.id, unchanged.revision,
+                requireNotNull(unchanged.pendingIntent), payload.text, id(), message)
+            report.writeText("state=${completed.status}\ntaskId=$taskId\nparticipant=doubao" +
+                "\nturn=${completed.steps.single().status}\nreason=${completed.reason}" +
+                "\npendingIntent=${completed.pendingIntent != null}\nanswerLength=${message.text.length}" +
+                "\nanswerHash=${sha256(message.text)}\nsubmitted=verified\nsource=doubao")
+        } catch (e: Exception) {
+            val reason = e.message?.takeIf { it.matches(Regex("[A-Z0-9_]+")) } ?: "DOUBAO_REPLY_VERIFY_ERROR"
+            taskId?.let { runCatching { app.store.pause(it, reason, true) } }
+            report.writeText("state=ERROR\ntaskId=$taskId\nreason=$reason\nsubmitted=unverified\n$diagnostics")
+        } finally { app.operationBusy.set(false) }
+    }
+    /** One fixed public Doubao send. A click acknowledgement never confirms delivery. */
+    suspend fun submitDoubao(app: TeamworkApp) {
+        if (!app.operationBusy.compareAndSet(false, true)) return
+        val report = File(app.filesDir, "single-exchange-last.txt")
+        var taskId: String? = null
+        try {
+            app.recovered.await()
+            val previous = report.readLines()
+            require(previous.firstOrNull() == "state=PAUSED" && "turn=STAGED" in previous &&
+                "pendingIntent=false" in previous && "submitted=false" in previous) { "STAGED_PROBE_REQUIRED" }
+            taskId = previous.single { it.startsWith("taskId=") }.substringAfter('=')
+            val task = app.store.get(taskId)
+            val participant = task.participants.singleOrNull()
+            require(task.goal == DeepSeekProbeProfile.GOAL && task.steps.size == 1 &&
+                task.status == TaskStatus.PAUSED && task.current?.status == TurnStatus.STAGED &&
+                task.pendingIntent == null && participant?.id == "doubao" &&
+                participant.packageName == "com.larus.nova" && participant.version == "14.9.0 (14090001)") {
+                "STAGED_PROBE_REQUIRED"
+            }
+            val payload = task.current?.payloadId?.let(task.payloads::get)
+            require(payload != null && org.phoneai.teamwork.workflow.PayloadBuilder.matches(task, task.current!!, payload)) {
+                "PAYLOAD_MISMATCH"
+            }
+            val binding = task.bindings["doubao"]
+            require(binding?.initialWindowId != null && binding.firstUserText.isEmpty() &&
+                binding.latestUserText.isEmpty()) { "THREAD_NOT_BOUND" }
+            val active = app.store.update(task.id, task.revision, "STARTED", "PUBLIC_DOUBAO_SEND") {
+                it.copy(status = TaskStatus.RUNNING, deadline = System.currentTimeMillis() + 180000)
+            }
+            report.writeText("state=RUNNING\ntaskId=$taskId\nphase=LOCATE_DOUBAO_SEND")
+            val phone = GuardedPhoneTools(app.store, Guardrail())
+            val observation = requireNotNull(phone.observe(active)) { "OBSERVATION_UNAVAILABLE" }
+            require(observation.profileVerified &&
+                PublicEmptyProfiles.evidence(active, observation)?.verifiedEmptyThread == true &&
+                observation.nodes.singleOrNull { it.role == NodeRole.INPUT }?.text == payload.text &&
+                observation.nodes.count { it.role == NodeRole.SEND } == 1) { "STAGED_INPUT_OR_SEND_UNVERIFIED" }
+            val proposal = app.model.propose(ControlContext(active.id, active.current!!.id, "doubao", null,
+                setOf(Action.FOCUS_SEND, Action.PAUSE), active.maxActionsPerStep - active.current!!.actionCount), observation)
+            val current = app.store.get(taskId)
+            require(current.status == TaskStatus.RUNNING && current.revision == active.revision &&
+                current.pendingIntent == null) { "STATE_CHANGED" }
+            val action = proposal.action
+            require(action?.action == Action.FOCUS_SEND && action.participantId == "doubao" &&
+                action.payloadId == null && action.target != null) { "MODEL_SEND_TARGET_REQUIRED" }
+            val target = requireNotNull(PublicEmptyProfiles.doubaoSendTarget(current, observation, action.target)) {
+                "SEND_LABEL_NOT_ACTIONABLE"
+            }
+            val result = phone.execute(taskId, ProposedAction(Action.SUBMIT, "doubao", target, payload.id))
+            val after = app.store.get(taskId)
+            if (after.status == TaskStatus.RUNNING) app.store.pause(taskId, "SEND_EFFECT_REQUIRES_VERIFICATION", true)
+            val paused = app.store.get(taskId)
+            report.writeText("state=${paused.status}\ntaskId=$taskId\nparticipant=doubao" +
+                "\nturn=${paused.current?.status}\nreason=${paused.reason}" +
+                "\npendingIntent=${paused.pendingIntent != null}\nclickAcknowledged=${result.allowed}" +
+                "\n${app.model.lastMetrics}\nsubmitted=unverified")
+        } catch (e: Exception) {
+            val reason = e.message?.takeIf { it.matches(Regex("[A-Z0-9_]+")) } ?: "DOUBAO_SEND_ERROR"
+            taskId?.let { runCatching { app.store.pause(it, reason, true) } }
+            report.writeText("state=ERROR\ntaskId=$taskId\nreason=$reason\nsubmitted=unverified")
+        } finally {
+            try { withContext(NonCancellable) { app.model.close() } }
+            finally { app.operationBusy.set(false) }
+        }
+    }
     /** Read-only recovery for a fixed public WRITE whose UI effect was not confirmed in time. */
     suspend fun verifyStagedInput(app: TeamworkApp) {
         if (!app.operationBusy.compareAndSet(false, true)) return

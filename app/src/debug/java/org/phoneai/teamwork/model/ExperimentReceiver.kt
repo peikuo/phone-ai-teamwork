@@ -18,6 +18,21 @@ import org.phoneai.teamwork.agent.NodeRole
 class ExperimentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext as TeamworkApp
+        if (intent.action == "org.phoneai.teamwork.DIAGNOSTIC_STATUS") {
+            val taskId = File(app.filesDir, "single-exchange-last.txt").takeIf(File::exists)
+                ?.readLines()?.singleOrNull { it.startsWith("taskId=") }?.substringAfter('=')
+            val statusFile = File(app.filesDir, "diagnostic-status-last.txt")
+            val basic =
+                "busy=${app.operationBusy.get()}\nrecovered=${app.recovered.isCompleted}" +
+                    "\ntaskId=$taskId"
+            statusFile.writeText(basic)
+            if (app.recovered.isCompleted && taskId != null) app.scope.launch {
+                val task = runCatching { app.store.get(taskId) }.getOrNull()
+                statusFile.writeText(basic + "\nstatus=${task?.status}\nturn=${task?.current?.status}" +
+                    "\npendingIntent=${task?.pendingIntent != null}")
+            }
+            return
+        }
         if (intent.action == "org.phoneai.teamwork.PROFILE_PUBLIC_EMPTY") {
             val sample = InspectionService.instance?.lastSample?.observation ?: return
             val target = Targets.all.singleOrNull { it.configuredPackage == sample.packageName &&
@@ -56,6 +71,14 @@ class ExperimentReceiver : BroadcastReceiver() {
         }
         if (intent.action == "org.phoneai.teamwork.SUBMIT_PUBLIC_PROBE") {
             app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.submit(app) }
+            return
+        }
+        if (intent.action == "org.phoneai.teamwork.SUBMIT_DOUBAO_PUBLIC_PROBE") {
+            app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.submitDoubao(app) }
+            return
+        }
+        if (intent.action == "org.phoneai.teamwork.VERIFY_DOUBAO_PUBLIC_PROBE") {
+            app.scope.launch { org.phoneai.teamwork.agent.SingleExchangeExperiment.verifyDoubaoReply(app) }
             return
         }
         if (intent.action == "org.phoneai.teamwork.VERIFY_PUBLIC_PROBE") {

@@ -123,5 +123,38 @@ class PublicEmptyProfilesTest {
         assertFalse(PublicEmptyProfiles.kimi(active, obs.copy(nodes = nodes.map {
             if (it.path == "0/7") it.copy(text = "foreign draft") else it }), 1100).profileVerified)
         assertFalse(PublicEmptyProfiles.kimi(active, obs.copy(nodes = nodes + node("0/8", desc = "private conversation")), 1100).profileVerified)
+        val staged = active.copy(pendingIntent = null,
+            steps = listOf(active.steps.single().copy(status = TurnStatus.STAGED)))
+        val classified = PublicEmptyProfiles.kimi(staged, obs, 1100)
+        assertTrue(classified.profileVerified)
+        assertFalse(classified.nodes.any { it.role == NodeRole.SEND })
+    }
+
+    @Test fun doubaoStagedDraftMapsOnlyUniqueClickableSendControl() {
+        val initial = task("doubao", "com.larus.nova", "14.9.0 (14090001)")
+        val step = initial.steps.single().copy(status = TurnStatus.PREPARED)
+        val prepared = initial.copy(steps = listOf(step))
+        val payload = PayloadBuilder.build(prepared, step)
+        val staged = prepared.copy(steps = listOf(step.copy(status = TurnStatus.STAGED, payloadId = payload.id)),
+            payloads = mapOf(payload.id to payload))
+        val input = node("0/5", payload.text, editable = true, bounds = "32 2006 932 2326", actions = setOf(2097152))
+        val send = node("0/6", desc = "发送", bounds = "932 2179 1048 2326", actions = setOf(16))
+            .copy(className = "android.widget.ImageView", clickable = true)
+        val nodes = listOf(node("0/0", "有什么我能帮你的吗？"), node("0/1", desc = "返回"),
+            node("0/2", desc = "打电话"), node("0/3", desc = "深度思考，已关闭"),
+            node("0/4", desc = "全屏输入"),
+            node("0/0/0/0/13/0", "打电话", visible = false, bounds = "489 2610 591 2358"),
+            input, send)
+        val obs = observation(staged.id, "com.larus.nova", "14.9.0 (14090001)", nodes)
+        val classified = PublicEmptyProfiles.doubao(staged, obs, 1100)
+        assertTrue(classified.profileVerified)
+        assertEquals(send.path, classified.nodes.single { it.role == NodeRole.SEND }.path)
+        assertNotNull(PublicEmptyProfiles.doubaoSendTarget(staged, classified, classified.target(classified.nodes.single { it.role == NodeRole.SEND })))
+        assertNull(PublicEmptyProfiles.doubaoSendTarget(staged, classified, classified.target(classified.nodes.single { it.role == NodeRole.INPUT })))
+        assertFalse(PublicEmptyProfiles.doubao(staged, obs.copy(nodes = nodes + send.copy(path = "0/7")), 1100).nodes.any { it.role == NodeRole.SEND })
+        assertFalse(PublicEmptyProfiles.doubao(staged, obs.copy(nodes = nodes.map { if (it.path == send.path) it.copy(clickable = false) else it }), 1100).nodes.any { it.role == NodeRole.SEND })
+        assertFalse(PublicEmptyProfiles.doubao(staged, obs.copy(nodes = nodes.map { if (it.path == send.path) it.copy(bounds = "200 100 316 247") else it }), 1100).nodes.any { it.role == NodeRole.SEND })
+        assertFalse(PublicEmptyProfiles.doubao(staged, obs.copy(nodes = nodes.map { if (it.path == send.path) it.copy(bounds = "1932 2179 2048 2326") else it }), 1100).nodes.any { it.role == NodeRole.SEND })
+        assertFalse(PublicEmptyProfiles.doubao(staged, obs.copy(nodes = nodes.map { if (it.path == input.path) it.copy(text = "foreign") else it }), 1100).profileVerified)
     }
 }

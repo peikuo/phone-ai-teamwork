@@ -12,6 +12,8 @@ Kimi 3.1.3 与豆包 14.9.0 各完成一次手机端小模型只读输入框定�
 
 Kimi 与豆包当前公开草稿页的发送控件还各取得一次手机小模型只读 `FOCUS_SEND` 正例；未点击。早期输出因省略不需要的 `payload` 键被严格解析器拒绝；仅对无 payload 的定位提议接受两键 JSON 后通过。一次 Kimi 图像实验约 90 秒超时，跨 App 切换后的调试入口不启动原因未明。详见 [英文记录](model-experiments/10-send-control-2026-10-29.md)。
 
+之后豆包固定英文公开题目完成一次真实发送与完整回答抓取：模型定位可点击发送节点，Guardrail 放行一次点击；两次只读观察证明用户气泡、助手正文和完成控件，回答 `POC_OK_7319` 写入 Room 并显示在自家 App。初次回复 profile 因两处静态节点保守拒绝，未重复发送；修正精确规则后只读重试通过。详见 [英文记录](single-exchange-experiments/04-doubao-verified-2026-10-29.md)。Kimi 仍仅暂存；三 App 七步及五题均未打通。
+
 ## 分步测试规则（2026-09-23）
 
 已建立 12 个版本化用例与主机 SQLite 运行库，先小步骤、再组合中步骤、最后 Kimi → DeepSeek 长步骤。真实小模型只读提议用例已接入 debug 实验入口；长用例仍因缺少 Store 中已核验的 Kimi 回答、发送与抓取适配而 BLOCKED。脚本记录 STEP_FINISHED，只有将来真实长场景通过才发 SCENARIO_COMPLETED。截图默认 5 秒间隔、最大 360×800 JPEG，存于 git 忽略的 captures 目录。详见 [规则库](step-lab.md)。

@@ -59,7 +59,7 @@ class MainActivity : Activity() {
     private fun home() {
         page = "home"; frame("Phone AI Teamwork")
         text("v0.3 · 开发 POC", 18f)
-        text("当前支持任务草案、三款 App 单次观察、本地模型提议实验，以及固定公开 DeepSeek 单轮收发验证。完整协作流程仍在开发。")
+        text("当前支持任务草案、三款 App 单次观察、本地模型提议实验，以及固定公开 DeepSeek / 豆包单轮收发验证。Kimi 已验证写入回读；完整协作流程仍在开发。")
         text("本地识别和状态无需额外云端服务器。未来启用协作后，获准内容会交给所选 AI App，并受各自数据处理规则约束。")
         button("创建协作任务 / 预览 Recipe") { newTask() }
         button("能力状态与待验证功能") { capabilityPage() }
