@@ -11,6 +11,41 @@ import java.io.File
 
 /** Developer/user-invoked, fixed public task. No arbitrary outgoing text accepted by debug entry points. */
 object SingleExchangeExperiment {
+    /** Read-only exact-draft check for the one staged public Kimi task. */
+    suspend fun inspectKimiDraft(app: TeamworkApp) {
+        if (!app.operationBusy.compareAndSet(false, true)) return
+        val report = File(app.filesDir, "kimi-draft-check-last.txt")
+        try {
+            app.recovered.await()
+            val task = app.store.all().single { it.goal == DeepSeekProbeProfile.GOAL &&
+                it.participants.singleOrNull()?.id == "kimi" && it.participants.single().packageName == "com.moonshot.kimichat" &&
+                it.participants.single().version == "3.1.3 (378)" && it.steps.size == 1 &&
+                it.status == TaskStatus.PAUSED && it.current?.status == TurnStatus.STAGED && it.pendingIntent == null }
+            val payload = requireNotNull(task.current?.payloadId?.let(task.payloads::get)) { "PAYLOAD_MISSING" }
+            require(org.phoneai.teamwork.workflow.PayloadBuilder.matches(task, task.current!!, payload)) { "PAYLOAD_MISMATCH" }
+            val observing = task.copy(status = TaskStatus.RUNNING, deadline = System.currentTimeMillis() + 30000)
+            val phone = GuardedPhoneTools(app.store, Guardrail())
+            val first = requireNotNull(phone.observe(observing)) { "OBSERVATION_UNAVAILABLE" }
+            val input = first.nodes.singleOrNull { it.role == NodeRole.INPUT }
+            require(first.profileVerified && input?.text == payload.text &&
+                PublicEmptyProfiles.evidence(observing, first)?.verifiedEmptyThread == true) { "KIMI_DRAFT_NOT_EXACT" }
+            delay(750)
+            val unchanged = app.store.get(task.id)
+            require(unchanged == task) { "STATE_CHANGED" }
+            val second = requireNotNull(phone.observe(observing)) { "OBSERVATION_UNAVAILABLE" }
+            val secondInput = second.nodes.singleOrNull { it.role == NodeRole.INPUT }
+            require(second.profileVerified && secondInput?.text == payload.text &&
+                PublicEmptyProfiles.evidence(observing, second)?.verifiedEmptyThread == true &&
+                first.id != second.id && first.windowId == second.windowId &&
+                input.path == secondInput.path && input.bounds == secondInput.bounds) { "KIMI_DRAFT_NOT_STABLE" }
+            require(app.store.get(task.id) == task) { "STATE_CHANGED" }
+            report.writeText("state=VERIFIED\nparticipant=kimi\ninputLength=${payload.text.length}" +
+                "\ninputHash=${payload.hash}\nsubmitted=false\nstoreChanged=false")
+        } catch (e: Exception) {
+            val reason = e.message?.takeIf { it.matches(Regex("[A-Z0-9_]+")) } ?: "KIMI_DRAFT_CHECK_ERROR"
+            report.writeText("state=ERROR\nreason=$reason\nsubmitted=false\nstoreChanged=false")
+        } finally { app.operationBusy.set(false) }
+    }
     /** Read-only complete-reply capture after the single fixed public Doubao send. */
     suspend fun verifyDoubaoReply(app: TeamworkApp) {
         if (!app.operationBusy.compareAndSet(false, true)) return
