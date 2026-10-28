@@ -231,9 +231,16 @@ def run_case(args):
         elif case['kind'] == 'public_draft_check':
             if case['participant'] != 'kimi' or not front_package(device, case['package']):
                 raise Blocked('KIMI_STAGED_PAGE_NOT_FOREGROUND')
+            # Xiaomi can freeze a cached receiver even while its accessibility service is bound.
+            # Rewarm only our app, return to the already selected Kimi app, then wait for a stable window.
+            adb(device, 'shell', 'am', 'start', '-n', 'org.phoneai.teamwork/.ui.MainActivity')
+            adb(device, 'shell', 'am', 'start', '-n', 'com.moonshot.kimichat/.MainActivity')
+            time.sleep(1.5)
+            if not front_package(device, case['package']):
+                raise Blocked('KIMI_STAGED_PAGE_NOT_FOREGROUND')
             adb(device, 'shell', 'run-as', 'org.phoneai.teamwork', 'rm', '-f',
                 'files/kimi-draft-check-last.txt')
-            adb(device, 'shell', 'am', 'broadcast', '-a', 'org.phoneai.teamwork.CHECK_KIMI_PUBLIC_DRAFT',
+            adb(device, 'shell', 'am', 'broadcast', '--receiver-foreground', '-a', 'org.phoneai.teamwork.CHECK_KIMI_PUBLIC_DRAFT',
                 '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver', '--es', 'run_id', run_id, timeout=12)
             end = time.monotonic() + args.timeout
             while time.monotonic() < end:
