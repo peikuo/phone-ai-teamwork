@@ -4,6 +4,8 @@
 
 固定英文公开题目在 DeepSeek 2.5.2 上完成一次真实收发：手机小模型定位 Send，Agent/Guardrail 核验后点击一次；App 两次观察确认用户消息和完整回答，将 `POC_OK_7319` 写入 Room，并在自家 App 任务页显示。第一次回复核验因静态输入提示词而保守拒绝，未重复发送；修正版本限定规则后，只读重试成功。证据见 [英文记录](single-exchange-experiments/02-deepseek-verified-2026-10-29.md)。Kimi、豆包、七步串联、五题复现、视频和图仍待完成。以下旧记录均为当时状态。
 
+Kimi 3.1.3 与豆包 14.9.0 各完成一次手机端小模型只读输入框定位；Kimi 切换文字模式、豆包新建空白对话由调试者手动完成，均未写入或发送。详见 [英文记录](model-experiments/09-kimi-doubao-input-2026-10-29.md)。
+
 ## 分步测试规则（2026-09-23）
 
 已建立 12 个版本化用例与主机 SQLite 运行库，先小步骤、再组合中步骤、最后 Kimi → DeepSeek 长步骤。真实小模型只读提议用例已接入 debug 实验入口；长用例仍因缺少 Store 中已核验的 Kimi 回答、发送与抓取适配而 BLOCKED。脚本记录 STEP_FINISHED，只有将来真实长场景通过才发 SCENARIO_COMPLETED。截图默认 5 秒间隔、最大 360×800 JPEG，存于 git 忽略的 captures 目录。详见 [规则库](step-lab.md)。

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Phone AI Teamwork responsibility and result flow</title>
+  <desc id="desc">The app owns the plan, agent, guardrails, phone actions, and local state. A small on-device model proposes bounded UI actions. Kimi, Doubao, and DeepSeek provide answers. Verified replies return to the app, which displays the final answer.</desc>
+  <defs>
+    <style>
+      text { font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #183247; }
+      .title { font-size: 34px; font-weight: 750; }
+      .subtitle { font-size: 17px; fill: #526e80; }
+      .heading { font-size: 20px; font-weight: 700; }
+      .body { font-size: 15px; fill: #496579; }
+      .tag { font-size: 13px; font-weight: 700; letter-spacing: 1px; fill: #397a8e; }
+      .line { fill: none; stroke: #507084; stroke-width: 3; }
+      .dashed { stroke-dasharray: 7 7; }
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#f6fafb"/>
+  <text x="54" y="67" class="title">Phone AI Teamwork</text>
+  <text x="55" y="99" class="subtitle">The phone app owns the workflow and the final answer. Other AI apps provide the substantive work.</text>
+
+  <rect x="54" y="143" width="1092" height="418" rx="26" fill="#ffffff" stroke="#d5e5e9" stroke-width="2"/>
+  <text x="82" y="177" class="tag">INSIDE PHONE AI TEAMWORK</text>
+
+  <rect x="82" y="202" width="236" height="132" rx="18" fill="#e6f3f3" stroke="#a7d6d7"/>
+  <text x="102" y="234" class="heading">1  Workflow</text>
+  <text x="102" y="263" class="body">Freeze the 3 + 3 + 1 plan,</text>
+  <text x="102" y="285" class="body">recipients and source grants.</text>
+
+  <rect x="346" y="202" width="236" height="132" rx="18" fill="#e8f0fa" stroke="#acc5e5"/>
+  <text x="366" y="234" class="heading">2  Local model</text>
+  <text x="366" y="263" class="body">Propose one UI action</text>
+  <text x="366" y="285" class="body">from the current screen.</text>
+
+  <rect x="610" y="202" width="236" height="132" rx="18" fill="#edf2ff" stroke="#b8c8ec"/>
+  <text x="630" y="234" class="heading">3  Agent</text>
+  <text x="630" y="263" class="body">Advance one bounded step;</text>
+  <text x="630" y="285" class="body">pause on uncertainty.</text>
+
+  <rect x="874" y="202" width="244" height="132" rx="18" fill="#fff1e8" stroke="#edc6ac"/>
+  <text x="894" y="234" class="heading">4  Guardrail</text>
+  <text x="894" y="263" class="body">Check app, thread, payload,</text>
+  <text x="894" y="285" class="body">sources and fresh target.</text>
+
+  <path class="line" d="M 318 268 H 344"/><path class="line" d="M 582 268 H 608"/><path class="line" d="M 846 268 H 872"/>
+  <path d="M 344 268 L 334 262 V 274 Z M 608 268 L 598 262 V 274 Z M 872 268 L 862 262 V 274 Z" fill="#507084"/>
+
+  <rect x="82" y="382" width="364" height="132" rx="18" fill="#eaf6f0" stroke="#b1dac2"/>
+  <text x="102" y="414" class="heading">6  State + result view</text>
+  <text x="102" y="443" class="body">Save verified replies and evidence.</text>
+  <text x="102" y="465" class="body">Show the final answer in this app.</text>
+
+  <rect x="610" y="382" width="508" height="132" rx="18" fill="#f0f5f8" stroke="#b8d0db"/>
+  <text x="630" y="414" class="heading">5  Phone Tools</text>
+  <text x="630" y="443" class="body">Read the target window; execute only approved actions.</text>
+  <text x="630" y="465" class="body">Confirm sends and complete replies before capture.</text>
+  <path class="line" d="M 996 335 V 380"/><path class="line" d="M 608 448 H 448"/>
+  <path d="M 996 380 L 990 370 H 1002 Z M 448 448 L 458 442 V 454 Z" fill="#507084"/>
+
+  <path class="line" d="M 865 515 V 592"/>
+  <path d="M 865 592 L 859 582 H 871 Z" fill="#507084"/>
+  <rect x="300" y="610" width="600" height="98" rx="22" fill="#e7edf8" stroke="#aebfdd" stroke-width="2"/>
+  <text x="330" y="643" class="heading">External AI apps: Kimi · Doubao · DeepSeek</text>
+  <text x="330" y="671" class="body">Answer, review and synthesize the authorized English question.</text>
+  <path class="line dashed" d="M 300 659 H 217 V 515"/>
+  <path d="M 217 515 L 211 525 H 223 Z" fill="#507084"/>
+  <text x="63" y="601" class="body">Verified replies</text>
+  <text x="102" y="690" class="body">Final answer appears in</text>
+  <text x="102" y="712" class="body">Phone AI Teamwork.</text>
+  <text x="55" y="746" class="body">Planned 3 + 3 + 1 flow · one DeepSeek single exchange verified on device so far</text>
+</svg>

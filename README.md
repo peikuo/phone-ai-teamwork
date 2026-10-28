@@ -4,9 +4,11 @@ Phone AI Teamwork explores whether a small model running on an Android phone can
 
 The on-device model identifies UI elements and proposes actions. The Agent manages the workflow and decides when to stop. Deterministic code prepares message payloads and verifies execution evidence. External AI apps answer, review, or synthesize. Each layer records its own results so failures can be attributed to model decisions, phone operations, state recovery, or AI responses.
 
-**This project is still validating core capabilities.** One device experiment used the local model to locate a DeepSeek input field; the Agent then entered a fixed public prompt and read it back exactly. A person opened the input screen. The prompt was not sent, and cross-app collaboration has not been demonstrated. That model inference took 16.422 seconds; a separate background inference was terminated by Android due to insufficient memory. See the [POC status](docs/poc-status.md) for current evidence and limitations.
+**This project is still validating core capabilities.** One fixed public English prompt completed a real DeepSeek exchange: the local model selected the input and send controls, the Agent and Guardrail authorized one send, and the app verified and saved the complete response. The result was displayed inside Phone AI Teamwork. Kimi and Doubao have each passed one read-only on-device input-localization trial. Three-app collaboration and the five-case demonstration have not yet passed. See the [DeepSeek evidence](docs/single-exchange-experiments/02-deepseek-verified-2026-10-29.md), [Kimi and Doubao evidence](docs/model-experiments/09-kimi-doubao-input-2026-10-29.md), and [POC status](docs/poc-status.md).
 
-Start with the [planning and result flow](docs/planning-and-result-flow.md), [step-based test scripts](docs/step-lab.md), [responsibility contracts](docs/capability-contracts.md), [unverified capabilities and deferred features](docs/capability-gates.md), [offline replay boundaries](docs/offline-replay.md), and [staged device evidence](docs/single-exchange-experiments/01-staged.txt). Some linked project notes are currently in Chinese.
+![Responsibility and result flow](docs/assets/phone-ai-teamwork-flow.svg)
+
+Start with the [planning and result flow](docs/planning-and-result-flow.md), [five public English questions](scripts/step-lab/scenarios.json), [step-based test scripts](docs/step-lab.md), [responsibility contracts](docs/capability-contracts.md), [unverified capabilities and deferred features](docs/capability-gates.md), and [offline replay boundaries](docs/offline-replay.md). Some linked project notes are currently in Chinese.
 
 ## What works today
 
@@ -17,12 +19,13 @@ Start with the [planning and result flow](docs/planning-and-result-flow.md), [st
 - Once the actual package names are configured and the user enables the accessibility service, start a 30-second, one-shot UI tree observation for Kimi, Doubao, or DeepSeek. On Android 14+, request a screenshot of the current window. These observations are not written to disk and do not scan other apps.
 - Import a local GGUF model and matching mmproj file, verify user-provided SHA-256 hashes, and store source, license, and quantization metadata.
 - Call one llama.cpp model instance through in-process JNI for constrained proposals based on a UI tree or a UI tree plus screenshot. Record load time, step time, peak PSS sampled every 250 ms, and parse status. One on-device run localized a clear input field; general automation, stability, and success rate remain unverified.
+- Run one fixed public DeepSeek single-exchange debug path with exact input readback, model-selected send control, a persisted effect intent, two-observation reply verification, and Room capture. The verified response appears on the task page in Phone AI Teamwork.
 
 ## Current limits
 
-Normal tasks do not automatically navigate, send messages, capture answers, or resume threads. A development-only path stages a fixed public DeepSeek test prompt: model localization → fresh observation and rebinding → Guardrail → persisted intent → execution recheck → `ACTION_SET_TEXT` → exact readback. It stops before sending. One device run passed this staging path; that does not establish general text-entry capability. `AppHints` has no generally validated version, and the read-only model experiment remains read-only. See the [single-app exchange status](docs/single-exchange.md).
+Normal tasks do not automatically navigate, send messages, capture answers, or resume threads. A development-only path supports one fixed public DeepSeek exchange; it does not accept arbitrary outgoing text. One device run passed the full single-exchange path. `AppHints` has no generally validated version, and Kimi and Doubao model experiments remain read-only. See the [single-app exchange status](docs/single-exchange.md).
 
-This is an M0 + M1 experimental starting point with real storage, observation, and a model interface. M2/M3 are incomplete. Staged writing has an intent record and a pre-execution recheck. Sending, thread role and position checks, and complete answer capture will be implemented after their required capabilities are validated.
+This is an experimental starting point with real storage, observation, a local model interface, and one narrow send-and-capture adapter. Three-app navigation, conversation return, seven-step orchestration, five repeatable cases, and privacy-reviewed videos remain incomplete.
 
 ## Build
 
