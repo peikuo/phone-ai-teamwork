@@ -28,11 +28,14 @@ object ModelExperiment {
             File(app.filesDir, "model-experiment-last.txt").writeText("state=RUNNING\nrun_id=$runId\ncase=$caseId\npackage=${sample.observation.packageName}\nimage=$withImage")
             val p = app.model.experiment(context, sample.observation, bitmap)
             val selected = sample.observation.nodes.singleOrNull { it.path == p.action?.target?.nodePath }
-            val report = "state=FINISHED\nrun_id=$runId\ncase=$caseId\n${app.model.lastMetrics}\nproposal=${p.action?.action ?: "NEEDS_USER"}\nnode=${p.action?.target?.nodePath ?: "none"}\nselected_editable=${selected?.editable}\nsend_label_match=${selected?.description in setOf("发送", "Send") || selected?.text in setOf("发送", "Send")}\nselected_bounds=${selected?.bounds}\neditable_nodes=${sample.observation.nodes.count { it.editable }}\n未执行任何动作；这不是 Guardrail 放行。"
+            val report = "state=FINISHED\nrun_id=$runId\ncase=$caseId\n${app.model.lastMetrics}\nproposal=${p.action?.action ?: "NEEDS_USER"}\nnode=${p.action?.target?.nodePath ?: "none"}\nselected_editable=${selected?.editable}\nsend_label_match=${selected?.description in setOf("发送", "Send", "发送讯息") || selected?.text in setOf("发送", "Send", "发送讯息")}\nselected_bounds=${selected?.bounds}\neditable_nodes=${sample.observation.nodes.count { it.editable }}\n未执行任何动作；这不是 Guardrail 放行。"
             File(app.filesDir, "model-experiment-last.txt").writeText(report)
             val history = File(app.filesDir, "model-experiments").apply { mkdirs() }
             File(history, "${System.currentTimeMillis()}.txt").writeText(report)
             return report
-        } finally { bitmap?.recycle(); app.operationBusy.set(false) }
+        } finally {
+            try { kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { app.model.close() } }
+            finally { bitmap?.recycle(); app.operationBusy.set(false) }
+        }
     }
 }

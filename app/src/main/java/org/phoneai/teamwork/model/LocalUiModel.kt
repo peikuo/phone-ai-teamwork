@@ -15,6 +15,11 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
+internal fun modelOutputKeysAllowed(keys: Set<String>, context: ControlContext): Boolean =
+    keys == setOf("action", "node", "payload") ||
+        (keys == setOf("action", "node") && context.payloadId == null &&
+            context.allowed.all { it in setOf(Action.FOCUS_INPUT, Action.FOCUS_SEND, Action.PAUSE, Action.WAIT) })
+
 class LocalUiModel(private val app: Context) : UiModel {
     override val info = UiModelInfo("llama.cpp@7ab4ee7baad2d920464cbacfad4f4b07cf111fd2 / CPU ${BuildConfig.CPU_ARCH} / JNI", true, true)
     private val mutex = Mutex()
@@ -68,7 +73,8 @@ class LocalUiModel(private val app: Context) : UiModel {
                     finally { if (scaled != null && scaled !== image) scaled.recycle() }
                 ensureActive(); check(!cancelled.get()) { "CANCELLED" }
                 val proposal = parse(output, context, observation)
-                lastMetrics = "package=${observation.packageName}\nversion=${observation.appVersion}\nbackend=${info.backend}\nload_ms=$loadMs（0 表示复用实例）\nstep_ms=${SystemClock.elapsedRealtime() - inferenceStart}\nsampled_peak_pss_kib=${peakPss.get()}（250ms 采样，非精确峰值）\nimage=${image != null}\nprojector_loaded=$loadedWithVision\nparse=${proposal.reason}"
+                val outputObject = runCatching { org.json.JSONTokener(output.trim()).nextValue() as? JSONObject }.getOrNull()
+                lastMetrics = "package=${observation.packageName}\nversion=${observation.appVersion}\nbackend=${info.backend}\nload_ms=$loadMs（0 表示复用实例）\nstep_ms=${SystemClock.elapsedRealtime() - inferenceStart}\nsampled_peak_pss_kib=${peakPss.get()}（250ms 采样，非精确峰值）\nimage=${image != null}\nprojector_loaded=$loadedWithVision\noutput_chars=${output.length}\noutput_starts_object=${output.trimStart().startsWith("{")}\noutput_has_think_tag=${"<think>" in output}\noutput_key_count=${outputObject?.length() ?: -1}\noutput_has_action=${outputObject?.has("action") == true}\noutput_has_node=${outputObject?.has("node") == true}\noutput_has_payload=${outputObject?.has("payload") == true}\nparse=${proposal.reason}"
                 proposal
             } catch (e: CancellationException) { nativeCancelSafely(); throw e }
             catch (e: Throwable) {
@@ -98,20 +104,26 @@ You only propose a target. The Agent and guardrail independently decide whether 
 Nodes: $nodes"""
     }
     private fun parse(raw: String, c: ControlContext, o: UiObservation): UiProposal = runCatching {
-        require(raw.length <= 4096)
+        require(raw.length <= 4096) { "TOO_LONG" }
         val tokenizer = org.json.JSONTokener(raw.trim())
         val json = tokenizer.nextValue() as? JSONObject ?: error("NOT_OBJECT")
-        require(tokenizer.nextClean() == '\u0000')
-        require(json.keys().asSequence().toSet() == setOf("action", "node", "payload"))
-        val action = Action.valueOf(json.getString("action"))
-        require(action in c.allowed)
+        require(tokenizer.nextClean() == '\u0000') { "TRAILING_TEXT" }
+        require(modelOutputKeysAllowed(json.keys().asSequence().toSet(), c)) { "KEY_MISMATCH" }
+        val action = Action.entries.singleOrNull { it.name == json.getString("action") } ?: error("UNKNOWN_ACTION")
+        require(action in c.allowed) { "ACTION_NOT_ALLOWED" }
         val node = if (json.isNull("node")) null else o.nodes.singleOrNull { it.path == json.getString("node") } ?: error("UNKNOWN_NODE")
-        val payload = if (json.isNull("payload")) null else json.getString("payload")
-        if (action in setOf(Action.PAUSE, Action.WAIT)) require(node == null && payload == null)
-        else require(node != null)
-        if (action in setOf(Action.WRITE, Action.SUBMIT)) require(c.payloadId != null && payload == c.payloadId) else require(payload == null)
+        val payload = if (!json.has("payload") || json.isNull("payload")) null else json.getString("payload")
+        if (action in setOf(Action.PAUSE, Action.WAIT)) require(node == null && payload == null) { "PAUSE_FIELDS" }
+        else require(node != null) { "MISSING_NODE" }
+        if (action in setOf(Action.WRITE, Action.SUBMIT)) require(c.payloadId != null && payload == c.payloadId) { "PAYLOAD_MISMATCH" }
+        else require(payload == null) { "UNEXPECTED_PAYLOAD" }
         UiProposal(ProposedAction(action, c.participantId, node?.let(o::target), payload), "PARSED_NOT_AUTHORIZED")
-    }.getOrElse { UiProposal(null, "INVALID_OUTPUT_NEEDS_USER") }
+    }.getOrElse {
+        val code = it.message?.takeIf { message -> message in setOf("TOO_LONG", "NOT_OBJECT", "TRAILING_TEXT",
+            "KEY_MISMATCH", "UNKNOWN_ACTION", "ACTION_NOT_ALLOWED", "UNKNOWN_NODE", "PAUSE_FIELDS",
+            "MISSING_NODE", "PAYLOAD_MISMATCH", "UNEXPECTED_PAYLOAD") } ?: "FORMAT"
+        UiProposal(null, "INVALID_OUTPUT_NEEDS_USER_$code")
+    }
     private fun nativeCancelSafely() { if (nativeReady) nativeCancel() }
     override suspend fun cancel() { cancelled.set(true); nativeCancelSafely() }
     override suspend fun close() { cancel(); mutex.withLock { if (loaded) { nativeClose(); loaded = false } } }
