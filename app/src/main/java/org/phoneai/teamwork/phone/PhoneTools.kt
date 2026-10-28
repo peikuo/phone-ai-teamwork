@@ -9,6 +9,7 @@ import org.phoneai.teamwork.agent.*
 import org.phoneai.teamwork.guardrail.*
 import org.phoneai.teamwork.state.*
 import org.phoneai.teamwork.targets.DeepSeekProbeProfile
+import org.phoneai.teamwork.targets.PublicEmptyProfiles
 
 interface PhoneTools {
     suspend fun observe(task: TaskState): UiObservation?
@@ -19,8 +20,17 @@ data class ToolResult(val allowed: Boolean, val reason: String)
 /** Only this class performs Android effects. The initial adapter permits one fixed public probe. */
 class GuardedPhoneTools(private val store: TaskStore, private val guardrail: Guardrail) : PhoneTools {
     private var lastObservation: UiObservation? = null
+    private fun classify(task: TaskState, observation: UiObservation): UiObservation = when (task.current?.participantId) {
+        "deepseek" -> DeepSeekProbeProfile.classify(task, observation)
+        "kimi" -> PublicEmptyProfiles.kimi(task, observation, System.currentTimeMillis())
+        "doubao" -> PublicEmptyProfiles.doubao(task, observation, System.currentTimeMillis())
+        else -> observation.copy(profileVerified = false)
+    }
+    private fun evidence(task: TaskState, observation: UiObservation): ThreadEvidence? =
+        if (task.current?.participantId == "deepseek") DeepSeekProbeProfile.evidence(task, observation)
+        else PublicEmptyProfiles.evidence(task, observation)
     override suspend fun observe(task: TaskState): UiObservation? = withContext(Dispatchers.Main) {
-        InspectionService.instance?.observeTask(task)?.let { DeepSeekProbeProfile.classify(task, it) }.also { lastObservation = it }
+        InspectionService.instance?.observeTask(task)?.let { classify(task, it) }.also { lastObservation = it }
     }
     private fun pause(taskId: String, reason: String): ToolResult {
         store.pause(taskId, reason, true)
@@ -43,7 +53,7 @@ class GuardedPhoneTools(private val store: TaskStore, private val guardrail: Gua
         val fresh = observe(before) ?: return pause(taskId, "OBSERVATION_UNAVAILABLE")
         val rebound = TargetRebinder.rebind(proposal, previous, fresh, System.currentTimeMillis())
         val action = rebound.action ?: return pause(taskId, rebound.reason)
-        val verdict = guardrail.authorize(action, before, fresh, DeepSeekProbeProfile.evidence(before, fresh), System.currentTimeMillis())
+        val verdict = guardrail.authorize(action, before, fresh, evidence(before, fresh), System.currentTimeMillis())
         if (verdict.decision != GuardrailDecision.ALLOW) return pause(taskId, verdict.reason)
         val intent = id()
         val recorded = store.beginEffect(taskId, before.revision, action.action, intent, System.currentTimeMillis())
@@ -51,11 +61,11 @@ class GuardedPhoneTools(private val store: TaskStore, private val guardrail: Gua
             store.atRevision(taskId, recorded.revision) { current ->
                 val service = InspectionService.instance ?: return@atRevision ToolResult(false, "SERVICE_UNAVAILABLE")
                 val raw = service.observeTask(current) ?: return@atRevision ToolResult(false, "WINDOW_CHANGED_BEFORE_EFFECT")
-                val instant = DeepSeekProbeProfile.classify(current, raw)
+                val instant = classify(current, raw)
                 val latest = TargetRebinder.rebind(action, fresh, instant, System.currentTimeMillis()).action
                     ?: return@atRevision ToolResult(false, "SCREEN_CHANGED_BEFORE_EFFECT")
                 val permitted = guardrail.authorizeRecordedEffect(latest, before, current, intent, instant,
-                    DeepSeekProbeProfile.evidence(current, instant), System.currentTimeMillis())
+                    evidence(current, instant), System.currentTimeMillis())
                 if (permitted.decision != GuardrailDecision.ALLOW) return@atRevision ToolResult(false, permitted.reason)
                 val node = service.nodeAt(instant, requireNotNull(latest.target).nodePath)
                     ?: return@atRevision ToolResult(false, "NODE_GONE")
@@ -90,7 +100,7 @@ class GuardedPhoneTools(private val store: TaskStore, private val guardrail: Gua
             if (current.status != TaskStatus.RUNNING) return ToolResult(false, "TASK_STOPPED")
             val readback = observe(current)
             val input = readback?.nodes?.singleOrNull { it.role == NodeRole.INPUT }
-            if (readback != null && DeepSeekProbeProfile.evidence(current, readback)?.verifiedEmptyThread == true &&
+            if (readback != null && evidence(current, readback)?.verifiedEmptyThread == true &&
                 input?.text == current.payloads.getValue(requireNotNull(current.current?.payloadId)).text) {
                 store.confirmWrite(taskId, current.revision, intent, input!!.text)
                 return ToolResult(true, "WRITE_ECHO_VERIFIED")

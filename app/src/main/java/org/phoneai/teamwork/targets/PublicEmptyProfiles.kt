@@ -4,17 +4,22 @@ import org.phoneai.teamwork.agent.NodeRole
 import org.phoneai.teamwork.agent.UiNode
 import org.phoneai.teamwork.agent.UiObservation
 import org.phoneai.teamwork.state.TaskState
+import org.phoneai.teamwork.agent.ThreadEvidence
+import org.phoneai.teamwork.state.TurnStatus
+import org.phoneai.teamwork.workflow.PayloadBuilder
 
-/** Read-only, version-pinned empty-composer recognition. Neither object authorizes an effect. */
+/** Version-pinned empty-composer evidence. Guardrail and Phone Tools alone authorize effects. */
 object PublicEmptyProfiles {
     private const val SET_TEXT = 2097152
     private val kimiStaticText = setOf("升级订阅", "新建项目", "PPT", "集群", "构建应用",
         "尽管问，带图也行", "内容由 AI 生成", "快速", "进阶")
     private val kimiStaticDescriptions = setOf("更多输入方式", "切换至语音输入", "关闭语音播报", "导航按钮")
+    private val kimiExpandedDraftDescriptions = setOf("输入区域扩展", "发送讯息")
     private val doubaoStaticText = setOf("有什么我能帮你的吗？", "对话", "工作", "AI 创作",
         "双11问豆包", "拍题答疑")
     private val doubaoStaticDescriptions = setOf("返回", "打电话", "朗读已关闭", "深度思考，已关闭",
         "AI 创作", "双11问豆包", "拍题答疑", "相机", "语音输入", "更多面板")
+    private val doubaoExpandedDraftDescriptions = setOf("全屏输入", "发送")
     private val kimiGreeting = Regex("嗨\\s+[^\\n]{1,30}，今天要和 Kimi 一起做点什么")
 
     private fun base(task: TaskState, o: UiObservation, now: Long, id: String, pkg: String, version: String) =
@@ -24,13 +29,20 @@ object PublicEmptyProfiles {
             o.taskId == task.id && o.packageName == pkg && o.appVersion == version &&
             !o.truncated && !o.locked && !o.obstructed && now - o.at in 0..5000
 
-    private fun usable(node: UiNode) = node.editable && node.enabled && node.visible &&
-        node.text.isEmpty() && node.className == "android.widget.EditText" &&
+    private fun usable(node: UiNode, draft: String = "") = node.editable && node.enabled && node.visible &&
+        (node.text.isEmpty() || (draft.isNotEmpty() && node.text == draft)) &&
+        node.className == "android.widget.EditText" &&
         SET_TEXT in node.supportedActions && node.bounds.split(' ').mapNotNull(String::toIntOrNull)
             .let { it.size == 4 && it[0] < it[2] && it[1] < it[3] }
+    private fun pendingDraft(task: TaskState): String? {
+        if (task.pendingIntent == null) return ""
+        val step = task.current ?: return null
+        val payload = step.payloadId?.let(task.payloads::get) ?: return null
+        return payload.text.takeIf { step.status == TurnStatus.PREPARED && PayloadBuilder.matches(task, step, payload) }
+    }
     private fun offscreenArtifact(node: UiNode): Boolean {
         val box = node.bounds.split(' ').mapNotNull(String::toIntOrNull)
-        return node.path == "0/0/0/0/14/0" && !node.visible &&
+        return node.path in setOf("0/0/0/0/14/0", "0/0/0/0/13/0") && !node.visible &&
             node.className == "android.widget.TextView" && node.text == "打电话" &&
             node.description.isBlank() && box.size == 4 && box[1] > box[3]
     }
@@ -41,23 +53,29 @@ object PublicEmptyProfiles {
 
     fun kimi(task: TaskState, o: UiObservation, now: Long): UiObservation {
         if (!base(task, o, now, "kimi", "com.moonshot.kimichat", "3.1.3 (378)")) return o.copy(profileVerified = false)
+        val draft = pendingDraft(task) ?: return o.copy(profileVerified = false)
+        val allowedDescriptions = kimiStaticDescriptions +
+            if (task.pendingIntent != null && draft.isNotEmpty()) kimiExpandedDraftDescriptions else emptySet()
         val greetings = o.nodes.filter { kimiGreeting.matches(it.text) && it.visible }
-        val inputs = o.nodes.filter(::usable)
+        val inputs = o.nodes.filter { usable(it, draft) }
         if (greetings.size != 1 || inputs.size != 1 || o.nodes.count { it.editable } != 1 ||
             o.nodes.none { it.description == "切换至语音输入" && it.visible && it.enabled } ||
             o.nodes.none { it.description == "更多输入方式" && it.visible && it.enabled } ||
             o.nodes.none { it.text == "快速" && it.visible } ||
             o.nodes.none { it.text == "进阶" && it.visible } ||
-            o.nodes.any { it.text.isNotBlank() && it.text !in kimiStaticText &&
+            o.nodes.any { it.text.isNotBlank() && it.text !in kimiStaticText && it.text != draft &&
                 !kimiGreeting.matches(it.text) } ||
-            o.nodes.any { it.description.isNotBlank() && it.description !in kimiStaticDescriptions })
+            o.nodes.any { it.description.isNotBlank() && it.description !in allowedDescriptions })
             return o.copy(profileVerified = false)
         return classified(o, inputs.single())
     }
 
     fun doubao(task: TaskState, o: UiObservation, now: Long): UiObservation {
         if (!base(task, o, now, "doubao", "com.larus.nova", "14.9.0 (14090001)")) return o.copy(profileVerified = false)
-        val inputs = o.nodes.filter(::usable)
+        val draft = pendingDraft(task) ?: return o.copy(profileVerified = false)
+        val allowedDescriptions = doubaoStaticDescriptions +
+            if (task.pendingIntent != null && draft.isNotEmpty()) doubaoExpandedDraftDescriptions else emptySet()
+        val inputs = o.nodes.filter { usable(it, draft) }
         val hidden = o.nodes.filter { it.editable && !it.visible }
         if (inputs.size != 1 || o.nodes.count { it.editable } != inputs.size + hidden.size ||
             hidden.size > 1 || hidden.any { it.text.isNotEmpty() } ||
@@ -66,10 +84,21 @@ object PublicEmptyProfiles {
             o.nodes.none { it.description == "返回" && it.visible && it.enabled } ||
             o.nodes.none { it.description == "打电话" && it.visible && it.enabled } ||
             o.nodes.none { it.description == "深度思考，已关闭" && it.visible && it.enabled } ||
-            o.nodes.any { it.text.isNotBlank() && it.text !in doubaoStaticText && !offscreenArtifact(it) } ||
-            o.nodes.any { it.description.isNotBlank() && it.description !in doubaoStaticDescriptions })
+            o.nodes.any { it.text.isNotBlank() && it.text !in doubaoStaticText && it.text != draft && !offscreenArtifact(it) } ||
+            o.nodes.any { it.description.isNotBlank() && it.description !in allowedDescriptions })
             return o.copy(profileVerified = false)
         return classified(o, inputs.single())
+    }
+
+    fun evidence(task: TaskState, o: UiObservation): ThreadEvidence? {
+        val participant = task.participants.singleOrNull() ?: return null
+        if (participant.id !in setOf("kimi", "doubao") || !o.profileVerified ||
+            task.cursor != 0 || task.messages.isNotEmpty()) return null
+        val binding = task.bindings[participant.id] ?: return null
+        if (binding.taskId != task.id || binding.participantId != participant.id ||
+            binding.appVersion != participant.version || binding.initialWindowId != o.windowId ||
+            binding.firstUserText.isNotEmpty() || binding.latestUserText.isNotEmpty()) return null
+        return ThreadEvidence(task.id, participant.id, o.id, false, false, verifiedEmptyThread = true)
     }
 
     /** Safe diagnostic metadata for the fixed public empty-composer experiment. */
@@ -77,12 +106,12 @@ object PublicEmptyProfiles {
         val text = if (id == "kimi") kimiStaticText else doubaoStaticText
         val descriptions = if (id == "kimi") kimiStaticDescriptions else doubaoStaticDescriptions
         return "editableCount=${o.nodes.count { it.editable }}" +
-            "\nusableInputCount=${o.nodes.count(::usable)}" +
+            "\nemptyUsableInputCount=${o.nodes.count(::usable)}" +
             "\nhiddenInputCount=${o.nodes.count { it.editable && !it.visible }}" +
             "\nunknownTextLengths=${o.nodes.filter { it.text.isNotBlank() && it.text !in text && (id != "kimi" || !kimiGreeting.matches(it.text)) }.map { it.text.length }}" +
             "\nunknownTextMeta=${o.nodes.filter { it.text.isNotBlank() && it.text !in text && (id != "kimi" || !kimiGreeting.matches(it.text)) }.joinToString(";") { "${it.path}:${it.text.length}:${it.bounds}:${it.visible}:${it.className}" }}" +
             "\noffscreenArtifactCount=${o.nodes.count(::offscreenArtifact)}" +
-            "\nartifactDescriptionLengths=${o.nodes.filter { it.path == "0/0/0/0/14/0" }.map { it.description.length }}" +
+            "\nartifactDescriptionLengths=${o.nodes.filter { it.path in setOf("0/0/0/0/14/0", "0/0/0/0/13/0") }.map { it.description.length }}" +
             "\nvisibleCallCount=${o.nodes.count { it.description == "打电话" && it.visible && it.enabled }}" +
             "\nunknownDescriptionLengths=${o.nodes.filter { it.description.isNotBlank() && it.description !in descriptions }.map { it.description.length }}" +
             "\ngreetingCount=${o.nodes.count { if (id == "kimi") kimiGreeting.matches(it.text) && it.visible else it.text == "有什么我能帮你的吗？" && it.visible }}" +

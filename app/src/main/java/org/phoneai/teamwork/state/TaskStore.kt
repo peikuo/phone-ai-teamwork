@@ -97,6 +97,10 @@ class TaskStore(context: Context) : AgentState {
         update(id, revision, "EFFECT_INTENT", action.name) { TurnLifecycle.beginEffect(it, action, intentId, now) }
     fun confirmWrite(id: String, revision: Long, intentId: String, exactInputText: String): TaskState =
         update(id, revision, "WRITE_VERIFIED", "EXACT_INPUT_ECHO") { TurnLifecycle.confirmWrite(it, intentId, exactInputText) }
+    fun confirmWriteAndPause(id: String, revision: Long, intentId: String, exactInputText: String): TaskState =
+        update(id, revision, "WRITE_VERIFIED", "INPUT_STAGED_AWAITING_SEND_ADAPTER") {
+            TurnLifecycle.confirmWriteAndPause(it, intentId, exactInputText)
+        }
     fun confirmSend(id: String, revision: Long, intentId: String, exactUserMessage: String, evidenceId: String): TaskState =
         update(id, revision, "SEND_VERIFIED", evidenceId) { TurnLifecycle.confirmSend(it, intentId, exactUserMessage, evidenceId) }
     fun capture(id: String, revision: Long, message: Message): TaskState =

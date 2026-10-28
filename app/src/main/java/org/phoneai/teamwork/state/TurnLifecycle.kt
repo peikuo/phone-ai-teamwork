@@ -46,6 +46,10 @@ object TurnLifecycle {
             steps = replace(task, step.copy(status = TurnStatus.STAGED)))
     }
 
+    fun confirmWriteAndPause(task: TaskState, intentId: String, exactInputText: String): TaskState =
+        confirmWrite(task, intentId, exactInputText).copy(status = TaskStatus.PAUSED,
+            reason = "INPUT_STAGED_AWAITING_SEND_ADAPTER")
+
     fun confirmSend(task: TaskState, intentId: String, exactUserMessage: String, evidenceId: String): TaskState {
         running(task)
         require(task.pendingIntent == intentId && intentId.isNotBlank()) { "INTENT_MISMATCH" }

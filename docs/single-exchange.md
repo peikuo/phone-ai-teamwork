@@ -1,5 +1,7 @@
 # 单 App 闭环开发进度 — 2026-09-22
 
+> Current status, 2026-10-29: one fixed public DeepSeek exchange has been sent, verified, stored, and displayed in Phone AI Teamwork. Kimi and Doubao have each staged the fixed public English prompt with exact readback and stopped before send. See the [DeepSeek result](single-exchange-experiments/02-deepseek-verified-2026-10-29.md) and [Kimi/Doubao staging result](single-exchange-experiments/03-kimi-doubao-staged-2026-10-29.md). The historical notes below describe earlier development states.
+
 目标：手机小模型定位 → 程序授权后写入 → 发送证据 → 完整回答保存。当前第一段定位与写入回读已有一次实测，发送与抓取待能力验证，不能称为闭环成功。
 
 ## 最新结果与当前暂停点

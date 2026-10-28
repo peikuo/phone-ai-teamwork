@@ -11,6 +11,61 @@ import java.io.File
 
 /** Developer/user-invoked, fixed public task. No arbitrary outgoing text accepted by debug entry points. */
 object SingleExchangeExperiment {
+    /** Read-only recovery for a fixed public WRITE whose UI effect was not confirmed in time. */
+    suspend fun verifyStagedInput(app: TeamworkApp) {
+        if (!app.operationBusy.compareAndSet(false, true)) return
+        val report = File(app.filesDir, "single-exchange-last.txt")
+        var taskId: String? = null
+        var diagnostics = ""
+        try {
+            app.recovered.await()
+            taskId = report.readLines().single { it.startsWith("taskId=") }.substringAfter('=')
+            val task = app.store.get(taskId)
+            val participant = requireNotNull(task.participants.singleOrNull()) { "UNCERTAIN_WRITE_REQUIRED" }
+            require(task.goal == DeepSeekProbeProfile.GOAL && task.steps.size == 1 &&
+                task.status == TaskStatus.NEEDS_USER && task.current?.status == TurnStatus.PREPARED &&
+                !task.pendingIntent.isNullOrBlank() && participant.id in setOf("kimi", "doubao") &&
+                participant.packageName == (if (participant.id == "kimi") "com.moonshot.kimichat" else "com.larus.nova") &&
+                participant.version == (if (participant.id == "kimi") "3.1.3 (378)" else "14.9.0 (14090001)")) {
+                "UNCERTAIN_WRITE_REQUIRED"
+            }
+            val payload = task.current?.payloadId?.let(task.payloads::get)
+            require(payload != null && org.phoneai.teamwork.workflow.PayloadBuilder.matches(task, task.current!!, payload)) {
+                "PAYLOAD_MISMATCH"
+            }
+            val active = app.store.update(task.id, task.revision, "VERIFY_STARTED", "OBSERVE_STAGED_INPUT") {
+                it.copy(status = TaskStatus.RUNNING, deadline = System.currentTimeMillis() + 30000)
+            }
+            report.writeText("state=RUNNING\ntaskId=$taskId\nphase=VERIFY_STAGED_INPUT")
+            val phone = GuardedPhoneTools(app.store, Guardrail())
+            val first = requireNotNull(phone.observe(active)) { "OBSERVATION_UNAVAILABLE" }
+            diagnostics = PublicEmptyProfiles.diagnostics(first, participant.id)
+            val firstInput = first.nodes.singleOrNull { it.role == NodeRole.INPUT }
+            require(first.profileVerified && firstInput?.text == payload.text &&
+                PublicEmptyProfiles.evidence(active, first)?.verifiedEmptyThread == true) { "STAGED_INPUT_NOT_EXACT" }
+            delay(750)
+            val unchanged = app.store.get(task.id)
+            require(unchanged.status == TaskStatus.RUNNING && unchanged.revision == active.revision &&
+                unchanged.pendingIntent == active.pendingIntent) { "STATE_CHANGED" }
+            val second = requireNotNull(phone.observe(unchanged)) { "OBSERVATION_UNAVAILABLE" }
+            diagnostics = PublicEmptyProfiles.diagnostics(second, participant.id)
+            val secondInput = second.nodes.singleOrNull { it.role == NodeRole.INPUT }
+            require(second.profileVerified && secondInput?.text == payload.text &&
+                PublicEmptyProfiles.evidence(unchanged, second)?.verifiedEmptyThread == true &&
+                second.id != first.id && second.windowId == first.windowId &&
+                secondInput.path == firstInput.path && secondInput.bounds == firstInput.bounds) { "STAGED_INPUT_NOT_STABLE" }
+            val staged = app.store.confirmWriteAndPause(task.id, unchanged.revision,
+                requireNotNull(unchanged.pendingIntent), payload.text)
+            report.writeText("state=${staged.status}\ntaskId=$taskId\nparticipant=${participant.id}" +
+                "\nturn=${staged.current?.status}\nreason=${staged.reason}" +
+                "\npendingIntent=${staged.pendingIntent != null}\ninputLength=${payload.text.length}" +
+                "\ninputHash=${payload.hash}\nsubmitted=false")
+        } catch (e: Exception) {
+            val reason = e.message?.takeIf { it.matches(Regex("[A-Z0-9_]+")) } ?: "STAGED_VERIFY_ERROR"
+            taskId?.let { runCatching { app.store.pause(it, reason, true) } }
+            report.writeText("state=ERROR\ntaskId=$taskId\nreason=$reason\nsubmitted=false\n$diagnostics")
+        } finally { app.operationBusy.set(false) }
+    }
     suspend fun verifyReply(app: TeamworkApp) {
         if (!app.operationBusy.compareAndSet(false, true)) return
         val report = File(app.filesDir, "single-exchange-last.txt")
@@ -140,15 +195,21 @@ object SingleExchangeExperiment {
             finally { app.operationBusy.set(false) }
         }
     }
-    suspend fun stage(app: TeamworkApp) {
+    suspend fun stage(app: TeamworkApp, participantId: String = "deepseek") {
         if (!app.operationBusy.compareAndSet(false, true)) return
         var taskId: String? = null
         var diagnostics = ""
         val report = File(app.filesDir, "single-exchange-last.txt")
         try {
             app.recovered.await()
-            val participant = requireNotNull(Targets.all.single { it.id == "deepseek" }.installed(app))
-            require(participant.version == "2.5.2 (273)") { "UNVERIFIED_VERSION" }
+            val expectedVersion = when (participantId) {
+                "deepseek" -> "2.5.2 (273)"
+                "kimi" -> "3.1.3 (378)"
+                "doubao" -> "14.9.0 (14090001)"
+                else -> error("UNAUTHORIZED_APP")
+            }
+            val participant = requireNotNull(Targets.all.single { it.id == participantId }.installed(app))
+            require(participant.version == expectedVersion) { "UNVERIFIED_VERSION" }
             val recipe = Recipe.discussion(DeepSeekProbeProfile.GOAL, listOf(participant), participant.id)
             val task = recipe.copy(steps = recipe.steps.take(1), maxActionsPerStep = 4)
             taskId = task.id
@@ -163,8 +224,11 @@ object SingleExchangeExperiment {
                 if (observation == null) { observation = phone.observe(active); if (observation == null) delay(500) }
             }
             val o = requireNotNull(observation) { "OBSERVATION_UNAVAILABLE" }
-            diagnostics = DeepSeekProbeProfile.diagnostics(active, o)
-            require(DeepSeekProbeProfile.empty(active, o)) { "EMPTY_PAGE_ANCHORS_REQUIRED" }
+            diagnostics = if (participantId == "deepseek") DeepSeekProbeProfile.diagnostics(active, o)
+                else PublicEmptyProfiles.diagnostics(o, participantId)
+            require(if (participantId == "deepseek") DeepSeekProbeProfile.empty(active, o) else o.profileVerified) {
+                "EMPTY_PAGE_ANCHORS_REQUIRED"
+            }
             require(o.profileVerified) { "WRITABLE_INPUT_REQUIRED" }
             require(o.nodes.single { it.role == NodeRole.INPUT }.text.isEmpty()) { "VERIFIED_EMPTY_INPUT_REQUIRED" }
             active = app.store.update(task.id, active.revision, "THREAD_BOUND", "VERIFIED_EMPTY_WINDOW") {

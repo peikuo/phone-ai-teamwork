@@ -4,7 +4,7 @@ Phone AI Teamwork explores whether a small model running on an Android phone can
 
 The on-device model identifies UI elements and proposes actions. The Agent manages the workflow and decides when to stop. Deterministic code prepares message payloads and verifies execution evidence. External AI apps answer, review, or synthesize. Each layer records its own results so failures can be attributed to model decisions, phone operations, state recovery, or AI responses.
 
-**This project is still validating core capabilities.** One fixed public English prompt completed a real DeepSeek exchange: the local model selected the input and send controls, the Agent and Guardrail authorized one send, and the app verified and saved the complete response. The result was displayed inside Phone AI Teamwork. Kimi and Doubao have each passed one read-only on-device input-localization trial. Three-app collaboration and the five-case demonstration have not yet passed. See the [DeepSeek evidence](docs/single-exchange-experiments/02-deepseek-verified-2026-10-29.md), [Kimi and Doubao evidence](docs/model-experiments/09-kimi-doubao-input-2026-10-29.md), and [POC status](docs/poc-status.md).
+**This project is still validating core capabilities.** One fixed public English prompt completed a real DeepSeek exchange: the local model selected the input and send controls, the Agent and Guardrail authorized one send, and the app verified and saved the complete response. The result was displayed inside Phone AI Teamwork. Kimi and Doubao have each staged one fixed public prompt with exact input readback, stopping before send. Three-app collaboration and the five-case demonstration have not yet passed. See the [DeepSeek evidence](docs/single-exchange-experiments/02-deepseek-verified-2026-10-29.md), [Kimi and Doubao staging evidence](docs/single-exchange-experiments/03-kimi-doubao-staged-2026-10-29.md), and [POC status](docs/poc-status.md).
 
 ![Responsibility and result flow](docs/assets/phone-ai-teamwork-flow.svg)
 
@@ -20,10 +20,11 @@ Start with the [planning and result flow](docs/planning-and-result-flow.md), [fi
 - Import a local GGUF model and matching mmproj file, verify user-provided SHA-256 hashes, and store source, license, and quantization metadata.
 - Call one llama.cpp model instance through in-process JNI for constrained proposals based on a UI tree or a UI tree plus screenshot. Record load time, step time, peak PSS sampled every 250 ms, and parse status. One on-device run localized a clear input field; general automation, stability, and success rate remain unverified.
 - Run one fixed public DeepSeek single-exchange debug path with exact input readback, model-selected send control, a persisted effect intent, two-observation reply verification, and Room capture. The verified response appears on the task page in Phone AI Teamwork.
+- Stage the same fixed public question in prepared Kimi and Doubao conversations, with on-device model localization and exact draft readback. These paths stop before sending.
 
 ## Current limits
 
-Normal tasks do not automatically navigate, send messages, capture answers, or resume threads. A development-only path supports one fixed public DeepSeek exchange; it does not accept arbitrary outgoing text. One device run passed the full single-exchange path. `AppHints` has no generally validated version, and Kimi and Doubao model experiments remain read-only. See the [single-app exchange status](docs/single-exchange.md).
+Normal tasks do not automatically navigate, send messages, capture answers, or resume threads. Development-only paths accept one fixed public question: DeepSeek has one verified single exchange, while Kimi and Doubao each have one verified input staging and stop before send. They do not accept arbitrary outgoing text. `AppHints` has no generally validated version. See the [single-app exchange status](docs/single-exchange.md).
 
 This is an experimental starting point with real storage, observation, a local model interface, and one narrow send-and-capture adapter. Three-app navigation, conversation return, seven-step orchestration, five repeatable cases, and privacy-reviewed videos remain incomplete.
 
