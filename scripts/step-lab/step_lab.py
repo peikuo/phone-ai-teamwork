@@ -122,8 +122,10 @@ def matching_draft_report(actual, run_id):
     return actual.get('run_id') == run_id and actual.get('state') in {'VERIFIED', 'ERROR'}
 
 
-def previous_pass(db, case_id, serial, version):
-    required = 3 if catalog()[case_id]['level'] == 'small' else 1
+def previous_pass(db, case_id, serial):
+    dependency = catalog()[case_id]
+    required = 3 if dependency['level'] == 'small' else 1
+    version = dependency['version']
     rows = db.execute('SELECT status,ended_at FROM runs WHERE case_id=? AND device=? AND app_version=? ORDER BY started_at DESC LIMIT ?',
                       (case_id, serial, version, required)).fetchall()
     return len(rows) == required and all(
@@ -208,7 +210,7 @@ def run_case(args):
         if version != case['version']:
             raise Blocked(f'APP_VERSION_MISMATCH:{version}')
         for dep in case['depends_on']:
-            if not previous_pass(db, dep, device, version):
+            if not previous_pass(db, dep, device):
                 raise Blocked(f'DEPENDENCY_NOT_PASSED:{dep}')
         if case['kind'] == 'model_proposal':
             arm_and_wait(device, case)

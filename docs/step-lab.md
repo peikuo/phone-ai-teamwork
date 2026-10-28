@@ -6,6 +6,8 @@ The catalog now has 13 cases. `kimi.public_draft_exact.v1` is a read-only small 
 
 Two further correlated runs (`c0cebb335507474aad83bc54` and `f2d55c7eb97e4cdb8cd8f63c`) also passed within the same hour, giving the latest three runs of this specific read-only small step consecutive PASS results. They reused the same staged public draft; they are repeat observations, not three independent sends or three different questions.
 
+The dependency gate now compares each prerequisite with that prerequisite's pinned App version. A future cross-App case must not compare Kimi evidence against DeepSeek's version merely because DeepSeek is the current target. This fixes an offline runner error; it does not unblock any pending phone capability or change the existing long-case BLOCKED status.
+
 更新：2026-09-23。用例目录：[`cases.json`](../scripts/step-lab/cases.json)；运行器：[`step_lab.py`](../scripts/step-lab/step_lab.py)。这是一套真实小模型实验的测试入口，不把 Codex 判断或模拟提议算作小模型成绩。当前 12 个用例：3 个已接线的只读小步骤、1 个已接线的固定公开题暂存中步骤，以及 8 个标为能力待确认的后续小步骤、中步骤和 Kimi → DeepSeek 长步骤。
 
 ## 责任与判定

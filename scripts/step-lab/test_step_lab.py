@@ -43,10 +43,19 @@ class StepLabTest(unittest.TestCase):
                 db.execute('INSERT INTO runs(run_id,case_id,level,owner,device,app_version,started_at,ended_at,status,reason,expected_json,actual_json,metrics_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (rid, 'ds.input.visible.v1', 'small', 'model', 'test-phone', '2.5.2 (273)', lab.utc(), lab.utc(), 'PASS', '', '{}', '{}', '{}'))
                 db.commit()
-                self.assertEqual(i == 2, lab.previous_pass(db, 'ds.input.visible.v1', 'test-phone', '2.5.2 (273)'))
+                self.assertEqual(i == 2, lab.previous_pass(db, 'ds.input.visible.v1', 'test-phone'))
             db.execute("UPDATE runs SET status='FAIL' WHERE run_id='run2'")
             db.commit()
-            self.assertFalse(lab.previous_pass(db, 'ds.input.visible.v1', 'test-phone', '2.5.2 (273)'))
+            self.assertFalse(lab.previous_pass(db, 'ds.input.visible.v1', 'test-phone'))
+
+    def test_dependency_uses_its_own_app_version(self):
+        with tempfile.TemporaryDirectory() as d:
+            db = lab.db_connect(Path(d) / 'runs.sqlite')
+            for i in range(3):
+                db.execute('INSERT INTO runs(run_id,case_id,level,owner,device,app_version,started_at,ended_at,status,reason,expected_json,actual_json,metrics_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                           (f'kimi{i}', 'kimi.public_draft_exact.v1', 'small', 'adapter', 'test-phone', '3.1.3 (378)', lab.utc(), lab.utc(), 'PASS', '', '{}', '{}', '{}'))
+            db.commit()
+            self.assertTrue(lab.previous_pass(db, 'kimi.public_draft_exact.v1', 'test-phone'))
 
     def test_events_and_runs_are_persisted(self):
         with tempfile.TemporaryDirectory() as d:
