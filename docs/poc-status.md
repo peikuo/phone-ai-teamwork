@@ -6,6 +6,8 @@
 
 Kimi 3.1.3 与豆包 14.9.0 各完成一次手机端小模型只读输入框定位；Kimi 切换文字模式、豆包新建空白对话由调试者手动完成，均未写入或发送。详见 [英文记录](model-experiments/09-kimi-doubao-input-2026-10-29.md)。
 
+两款 App 的当前空白页还通过版本限定、5 秒内有效的只读 profile 复核；这尚未接入 Guardrail 写入路径，不能视作可执行写入能力。
+
 ## 分步测试规则（2026-09-23）
 
 已建立 12 个版本化用例与主机 SQLite 运行库，先小步骤、再组合中步骤、最后 Kimi → DeepSeek 长步骤。真实小模型只读提议用例已接入 debug 实验入口；长用例仍因缺少 Store 中已核验的 Kimi 回答、发送与抓取适配而 BLOCKED。脚本记录 STEP_FINISHED，只有将来真实长场景通过才发 SCENARIO_COMPLETED。截图默认 5 秒间隔、最大 360×800 JPEG，存于 git 忽略的 captures 目录。详见 [规则库](step-lab.md)。

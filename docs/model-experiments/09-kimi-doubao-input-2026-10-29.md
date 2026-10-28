@@ -10,3 +10,7 @@ These are read-only on-device model trials. They establish input location on two
 Both calls used the UI tree without an image. Neither executed the proposal. No message was written or sent. The Kimi voice-mode switch and Doubao new-chat navigation were manual preparation and must be implemented or clearly counted as manual steps in any future scenario result. Temporary cropped screenshots for diagnosis were kept outside Git and removed; the prior Doubao conversation content was not saved in the repository.
 
 Before an executable write adapter is enabled for either version, it needs a version-specific empty-thread profile, exact payload and target rebinding, fresh UI checks, and a recorded effect intent. Sending additionally needs an observed send control and a role/completion verifier with a no-resend recovery path.
+
+## Read-only empty-thread profile check
+
+Version-specific, read-only empty-composer profiles were added and run against new fresh observations. Kimi `3.1.3 (378)` passed with 54 nodes, a 14 ms old snapshot, one visible empty input, and no other editable input. Doubao `14.9.0 (14090001)` passed with 32 nodes, a 503 ms old snapshot, one visible empty input, one hidden empty input, and one exact static hidden call-label artifact. Both reports recorded `executed=false`. The profiles reject unknown visible text and descriptions, nonempty drafts, multiple usable inputs, old observations, wrong versions, and changed voice/conversation states. This only verifies the prepared screens; it does not authorize or demonstrate writing.
