@@ -25,6 +25,7 @@ class InspectionService : AccessibilityService() {
     private var request: Request? = null
     private var generation = 0L
     var lastSample: Sample? = null; private set
+    private var publicTouchDelegates: Map<String, String> = emptyMap()
     var status: String = "未开启检查"; private set
     override fun onServiceConnected() { instance = this }
     override fun onInterrupt() { stopInspection() }
@@ -64,6 +65,7 @@ class InspectionService : AccessibilityService() {
     }
     fun stopInspection() {
         generation++; request = null; epoch.incrementAndGet()
+        publicTouchDelegates = emptyMap()
         lastSample?.image?.recycle(); lastSample = null; status = "已停止并清除临时观察"
     }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -87,6 +89,7 @@ class InspectionService : AccessibilityService() {
         }
         if (blocked) { root.recycle(); status = "有其他窗口遮挡，未读取"; return }
         val nodes = mutableListOf<UiNode>()
+        val touchDelegates = mutableMapOf<String, String>()
         var truncated = false
         var containsPassword = false
         fun visit(node: AccessibilityNodeInfo, path: String, depth: Int) {
@@ -95,6 +98,15 @@ class InspectionService : AccessibilityService() {
             containsPassword = containsPassword || node.isPassword
             val text = inputText(node)
             val description = if (node.isPassword) "" else node.contentDescription?.toString().orEmpty()
+            if (org.phoneai.teamwork.BuildConfig.DEBUG && pkg == "com.moonshot.kimichat") node.touchDelegateInfo?.let { info ->
+                val regions = (0 until minOf(info.regionCount, 5)).map { index ->
+                    val region = info.getRegionAt(index)
+                    val target = info.getTargetForRegion(region)
+                    try { "${region.bounds.flattenToString()}:${target?.contentDescription?.toString() == "发送讯息"}" }
+                    finally { target?.recycle() }
+                }
+                touchDelegates[path] = "count=${info.regionCount} regions=${regions.joinToString(";")}"
+            }
             if (text.length > 2000 || description.length > 500) truncated = true
             nodes += UiNode(path, node.viewIdResourceName, text.take(2000), description.take(500), node.isEditable, node.isClickable, rect.flattenToString(),
                 enabled = node.isEnabled, visible = node.isVisibleToUser, className = node.className?.toString().orEmpty(), supportedActions = node.actionList.map { it.id }.toSet())
@@ -107,6 +119,7 @@ class InspectionService : AccessibilityService() {
         val o = UiObservation(id(), r.taskId, pkg, root.windowId, epoch.get(), System.currentTimeMillis(), nodes, r.participant.version, truncated, locked, false)
         root.recycle(); request = null
         lastSample = Sample(o, null, if (r.screenshot) "截图中" else "未请求截图")
+        publicTouchDelegates = touchDelegates
         status = "已读取 ${nodes.size} 个节点；${if (truncated) "观察被限长，不可用于自动动作" else "仅内存保存"}"
         if (r.screenshot) {
             if (containsPassword) { lastSample = Sample(o, null, "检测到密码输入框，未截图"); return }
@@ -144,13 +157,14 @@ class InspectionService : AccessibilityService() {
                 writer.println("phoneai.input path=${it.path} class=${it.className} textLength=${it.text.length} enabled=${it.enabled} visible=${it.visible} actions=${it.supportedActions} bounds=${it.bounds}")
             }
             if (sample.observation.packageName == "com.moonshot.kimichat") {
-                sample.observation.nodes.filter { it.description == "发送讯息" }.forEach { send ->
+                sample.observation.nodes.singleOrNull { it.description == "发送讯息" }?.let { send ->
                     writer.println("phoneai.publicSend path=${send.path} class=${send.className} clickable=${send.clickable} enabled=${send.enabled} visible=${send.visible} actions=${send.supportedActions} bounds=${send.bounds}")
                     var path = send.path
                     repeat(4) { depth ->
                         path = path.substringBeforeLast('/', "")
                         val ancestor = sample.observation.nodes.singleOrNull { it.path == path }
                         if (ancestor != null) writer.println("phoneai.publicSendAncestor depth=${depth + 1} path=${ancestor.path} class=${ancestor.className} clickable=${ancestor.clickable} enabled=${ancestor.enabled} visible=${ancestor.visible} actions=${ancestor.supportedActions} bounds=${ancestor.bounds}")
+                        publicTouchDelegates[path]?.let { writer.println("phoneai.publicSendTouchDelegate depth=${depth + 1} $it") }
                     }
                 }
             }
