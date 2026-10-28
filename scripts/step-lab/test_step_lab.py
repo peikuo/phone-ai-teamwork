@@ -11,6 +11,10 @@ lab = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(lab)
 
 class StepLabTest(unittest.TestCase):
+    def test_front_package_rejects_outside_allowlist_before_adb(self):
+        with self.assertRaisesRegex(ValueError, 'PACKAGE_OUTSIDE_PHONE_LAB'):
+            lab.front_package('test-phone', 'com.example.other')
+
     def test_catalog_has_progressive_acyclic_cases(self):
         cases = lab.catalog()
         self.assertEqual(12, len(cases))

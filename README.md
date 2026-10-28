@@ -13,7 +13,7 @@ Start with the [planning and result flow](docs/planning-and-result-flow.md), [fi
 ## What works today
 
 - Inspect responsibility boundaries, available evidence, and features awaiting validation. There is no unlock switch for unverified features.
-- In debug builds, run versioned, read-only UI localization scripts against the local model. Results and low-resolution thumbnails go into the Git-ignored `captures/` directory.
+- In debug builds, run versioned, read-only UI localization scripts against the local model. Result metadata goes into the Git-ignored `captures/` directory. Automated host screenshots are disabled until target-window isolation is implemented.
 - Save tasks, participants, and sharing scope. Generate one-, two-, or three-participant steps from the same Recipe. The default three-app Recipe has seven steps: 3 + 3 + 1.
 - Preview the complete generated payload for the first step, its provenance, and the journal. Pause, cancel, or delete local records.
 - Once the actual package names are configured and the user enables the accessibility service, start a 30-second, one-shot UI tree observation for Kimi, Doubao, or DeepSeek. On Android 14+, request a screenshot of the current window. These observations are not written to disk and do not scan other apps.

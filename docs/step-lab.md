@@ -29,7 +29,7 @@
 ```sh
 python3 scripts/step-lab/step_lab.py validate
 python3 scripts/step-lab/step_lab.py list
-python3 scripts/step-lab/step_lab.py run ds.input.visible.v1 --screenshot-every 5 --notify
+python3 scripts/step-lab/step_lab.py run ds.input.visible.v1 --notify
 python3 scripts/step-lab/step_lab.py history
 python3 scripts/step-lab/step_lab.py summary
 python3 scripts/step-lab/step_lab.py report <run_id>
@@ -37,9 +37,9 @@ python3 scripts/step-lab/step_lab.py report <run_id>
 
 运行前按 `list` 对应 setup 准备目标 App 页面。运行器只接受目录中的固定用例，不接收任意外发正文。`model_proposal` 从本 App 的 AccessibilityService 取当前窗口，调用手机 Qwen 后读取调试报告；`public_stage` 会真实写入固定公开测试题并在发送前暂停，因此应确认输入框为空。`relay` 和能力待确认用例只记录阻塞，不操作手机。需安装包含本规则入口的新版 debug APK；旧 APK 不支持 `case_id`、`run_id`。
 
-结果在本机 `captures/step-lab.sqlite` 的 `runs` 与 `events` 表，按 run_id 追踪。每次结束输出 JSON `STEP_FINISHED`；`--notify` 同时请求 macOS 本地通知。截图默认每 5 秒一次，仅当前目标 App 在前台时取得，内存中缩为最长 360×800、JPEG quality 48 后保存到 `captures/step-lab/<run_id>/`。原始全分辨率图不落盘，缩略图路径入库，不把图片数据写入事件、模型报告或对话。可设 `--screenshot-every 0` 禁用。图库和数据库位于 git 忽略的 `captures/`；它们可能包含测试会话内容，分享前需人工检查。
+结果在本机 `captures/step-lab.sqlite` 的 `runs` 与 `events` 表，按 run_id 追踪。每次结束输出 JSON `STEP_FINISHED`；`--notify` 同时请求 macOS 本地通知。截图入口暂时只接受 `--screenshot-every 0`：之前的全屏 `screencap` 可能包含状态栏、分屏或悬浮窗，单靠前台包名检查和裁剪无法隔离，因此已移除。恢复时必须使用目标窗口截图并复核内容。数据库位于 git 忽略的 `captures/`。
 
-模型判断的输入仍是 bounded UI tree；这些低分辨率截图用于我们事后检查执行问题，不计入该次模型提议的输入，也不算视觉能力验证。需要比较“树”和“截图+树”时，应另设明确的 case ID 和预期。
+模型判断的输入仍是 bounded UI tree。待目标窗口截图路径安全接通后，如需比较“树”和“截图+树”，应另设明确的 case ID 和预期；当前脚本没有自动截图或视觉能力验证。
 
 规则自身验证：`python3 -m unittest discover -s scripts/step-lab -p 'test_*.py'`。脚本规则测试只检查目录、判定与入库，不证明 Android 交互或 Qwen 准确率。
 

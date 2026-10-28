@@ -16,7 +16,7 @@ Kimi 与豆包当前公开草稿页的发送控件还各取得一次手机小模
 
 ## 分步测试规则（2026-09-23）
 
-已建立 12 个版本化用例与主机 SQLite 运行库，先小步骤、再组合中步骤、最后 Kimi → DeepSeek 长步骤。真实小模型只读提议用例已接入 debug 实验入口；长用例仍因缺少 Store 中已核验的 Kimi 回答、发送与抓取适配而 BLOCKED。脚本记录 STEP_FINISHED，只有将来真实长场景通过才发 SCENARIO_COMPLETED。截图默认 5 秒间隔、最大 360×800 JPEG，存于 git 忽略的 captures 目录。详见 [规则库](step-lab.md)。
+已建立 12 个版本化用例与主机 SQLite 运行库，先小步骤、再组合中步骤、最后 Kimi → DeepSeek 长步骤。真实小模型只读提议用例已接入 debug 实验入口；长用例仍因缺少 Store 中已核验的 Kimi 回答、发送与抓取适配而 BLOCKED。脚本记录 STEP_FINISHED，只有将来真实长场景通过才发 SCENARIO_COMPLETED。早期全屏截图入口因无法隔离分屏和悬浮窗，现已关闭；详见 [规则库](step-lab.md)。
 
 Python 4 项规则测试、Android 48 个 JVM 测试、assembleDebug、verifyReleasePermissions 均通过；新版 APK 尚未安装到手机，未取得新小步骤实机成功率。
 

@@ -2,13 +2,11 @@
 """Versioned, evidence-first step cases. Debug APK only; no arbitrary outbound text."""
 from __future__ import annotations
 import argparse
-import io
 import json
 import re
 import sqlite3
 import subprocess
 import sys
-import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -19,6 +17,9 @@ CATALOG = Path(__file__).with_name('cases.json')
 DEFAULT_DB = ROOT / 'captures' / 'step-lab.sqlite'
 ADB = Path.home() / 'Library/Android/sdk/platform-tools/adb'
 LEVELS = {'small': 0, 'medium': 1, 'long': 2}
+ALLOWED_PACKAGES = frozenset({
+    'org.phoneai.teamwork', 'com.moonshot.kimichat', 'com.larus.nova', 'com.deepseek.chat',
+})
 
 
 def catalog():
@@ -128,30 +129,11 @@ def previous_pass(db, case_id, serial, version):
 
 
 def front_package(serial, package):
+    if package not in ALLOWED_PACKAGES:
+        raise ValueError('PACKAGE_OUTSIDE_PHONE_LAB')
     out = adb(serial, 'shell', 'dumpsys', 'window', timeout=10)
     focus = re.search(r'mCurrentFocus=([^\n]+)', out)
     return bool(focus and f'u0 {package}/' in focus.group(1))
-
-
-def thumbnail_loop(serial, package, directory, interval, stop, paths):
-    if interval <= 0:
-        return
-    from PIL import Image
-    directory.mkdir(parents=True, exist_ok=True)
-    index = 0
-    while not stop.is_set():
-        try:
-            if front_package(serial, package):
-                data = adb(serial, 'exec-out', 'screencap', '-p', timeout=12, binary=True)
-                image = Image.open(io.BytesIO(data)).convert('RGB')
-                image.thumbnail((360, 800))
-                path = directory / f'{index:03d}.jpg'
-                image.save(path, format='JPEG', quality=48, optimize=True)
-                paths.append(str(path.relative_to(ROOT)))
-                index += 1
-        except Exception:
-            pass  # A missed diagnostic frame never changes the case verdict.
-        stop.wait(interval)
 
 
 def wait_report(serial, filename, run_id, timeout):
@@ -212,9 +194,6 @@ def run_case(args):
                 json.dumps(case['expect'], ensure_ascii=False), '{}', '{}'))
     db.commit()
     event(db, run_id, 'STEP_STARTED', {'case_id': case['id'], 'level': case['level'], 'owner': case['owner']})
-    frames = []
-    stop = threading.Event()
-    worker = None
     actual = {}
     mismatches = {}
     try:
@@ -227,11 +206,6 @@ def run_case(args):
         for dep in case['depends_on']:
             if not previous_pass(db, dep, device, version):
                 raise Blocked(f'DEPENDENCY_NOT_PASSED:{dep}')
-        if args.screenshot_every:
-            worker = threading.Thread(target=thumbnail_loop,
-                args=(device, case['package'], ROOT / 'captures' / 'step-lab' / run_id,
-                      args.screenshot_every, stop, frames), daemon=True)
-            worker.start()
         if case['kind'] == 'model_proposal':
             arm_and_wait(device, case)
             adb(device, 'shell', 'am', 'broadcast', '-a', 'org.phoneai.teamwork.RUN_EXPERIMENT',
@@ -255,19 +229,13 @@ def run_case(args):
         status, reason = 'BLOCKED', str(e)
     except Exception as e:
         status, reason = 'ERROR', str(e).splitlines()[0][:180]
-    finally:
-        stop.set()
-        if worker:
-            worker.join(timeout=25)
     metrics = {k: actual.get(k) for k in ('backend', 'load_ms', 'step_ms', 'sampled_peak_pss_kib', 'image', 'parse') if k in actual}
     db.execute('UPDATE runs SET device=?,app_version=?,ended_at=?,status=?,reason=?,actual_json=?,metrics_json=?,screenshot_count=? WHERE run_id=?',
                (device, version, utc(), status, reason, json.dumps({'fields': actual, 'mismatches': mismatches}, ensure_ascii=False),
-                json.dumps(metrics, ensure_ascii=False), len(frames), run_id))
+                json.dumps(metrics, ensure_ascii=False), 0, run_id))
     db.commit()
-    for path in frames:
-        event(db, run_id, 'THUMBNAIL_SAVED', {'path': path, 'max_size': '360x800'})
     event(db, run_id, 'STEP_FINISHED', {'case_id': case['id'], 'status': status, 'reason': reason,
-                                       'screenshots': len(frames), 'actual': {k: actual.get(k) for k in case['expect']}})
+                                       'screenshots': 0, 'actual': {k: actual.get(k) for k in case['expect']}})
     if status == 'PASS' and case['level'] == 'long':
         event(db, run_id, 'SCENARIO_COMPLETED', {'case_id': case['id']})
     if args.notify:
@@ -297,7 +265,7 @@ def main():
     run.add_argument('--serial')
     run.add_argument('--timeout', type=int, default=150)
     run.add_argument('--notify', action='store_true', help='Also show a local macOS completion notification')
-    run.add_argument('--screenshot-every', type=int, default=5, help='Seconds; 0 disables thumbnails')
+    run.add_argument('--screenshot-every', type=int, default=0, help='Temporarily disabled; only 0 is accepted')
     args = p.parse_args()
     cases = catalog()
     if args.command == 'validate':
@@ -342,8 +310,8 @@ def main():
     else:
         if args.case_id not in cases:
             p.error('unknown case id')
-        if args.timeout < 10 or args.timeout > 600 or args.screenshot_every < 0 or (0 < args.screenshot_every < 3):
-            p.error('timeout must be 10..600 seconds; screenshot interval is 0 or at least 3 seconds')
+        if args.timeout < 10 or args.timeout > 600 or args.screenshot_every != 0:
+            p.error('timeout must be 10..600 seconds; screenshots require an isolated target-window path and are disabled')
         return run_case(args)
     return 0
 
