@@ -144,10 +144,13 @@ class InspectionService : AccessibilityService() {
             }
             if (sample.observation.packageName == "com.moonshot.kimichat") {
                 sample.observation.nodes.filter { it.description == "发送讯息" }.forEach { send ->
-                    val parentPath = send.path.substringBeforeLast('/', "")
-                    val parent = sample.observation.nodes.singleOrNull { it.path == parentPath }
                     writer.println("phoneai.publicSend path=${send.path} class=${send.className} clickable=${send.clickable} enabled=${send.enabled} visible=${send.visible} actions=${send.supportedActions} bounds=${send.bounds}")
-                    writer.println("phoneai.publicSendParent path=${parent?.path} class=${parent?.className} clickable=${parent?.clickable} bounds=${parent?.bounds}")
+                    var path = send.path
+                    repeat(4) { depth ->
+                        path = path.substringBeforeLast('/', "")
+                        val ancestor = sample.observation.nodes.singleOrNull { it.path == path }
+                        if (ancestor != null) writer.println("phoneai.publicSendAncestor depth=${depth + 1} path=${ancestor.path} class=${ancestor.className} clickable=${ancestor.clickable} enabled=${ancestor.enabled} visible=${ancestor.visible} actions=${ancestor.supportedActions} bounds=${ancestor.bounds}")
+                    }
                 }
             }
             if (sample.observation.packageName == "com.deepseek.chat") {
