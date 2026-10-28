@@ -24,12 +24,16 @@ class ExperimentReceiver : BroadcastReceiver() {
             val statusFile = File(app.filesDir, "diagnostic-status-last.txt")
             val basic =
                 "busy=${app.operationBusy.get()}\nrecovered=${app.recovered.isCompleted}" +
-                    "\ntaskId=$taskId"
+                    "\nserviceConnected=${InspectionService.instance != null}\ntaskId=$taskId" +
+                    "\nstateRead=pending"
             statusFile.writeText(basic)
             if (app.recovered.isCompleted && taskId != null) app.scope.launch {
                 val task = runCatching { app.store.get(taskId) }.getOrNull()
-                statusFile.writeText(basic + "\nstatus=${task?.status}\nturn=${task?.current?.status}" +
-                    "\npendingIntent=${task?.pendingIntent != null}")
+                statusFile.writeText(if (task == null)
+                    basic.replace("stateRead=pending", "stateRead=error") + "\npendingIntent=unknown"
+                else basic.replace("stateRead=pending", "stateRead=complete") +
+                    "\nstatus=${task.status}\nturn=${task.current?.status}" +
+                    "\npendingIntent=${task.pendingIntent != null}")
             }
             return
         }
