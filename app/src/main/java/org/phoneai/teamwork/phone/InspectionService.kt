@@ -136,6 +136,7 @@ class InspectionService : AccessibilityService() {
         writer.println("phoneai.armed=${request != null}")
         lastSample?.let { sample ->
             writer.println("phoneai.package=${sample.observation.packageName}")
+            writer.println("phoneai.observedAt=${sample.observation.at}")
             writer.println("phoneai.nodes=${sample.observation.nodes.size}")
             writer.println("phoneai.truncated=${sample.observation.truncated}")
             writer.println("phoneai.screenshot=${sample.screenshotStatus}")

@@ -108,7 +108,8 @@ class ExperimentReceiver : BroadcastReceiver() {
             try { ModelExperiment.run(app, intent.getBooleanExtra("with_image", false), intent.getStringExtra("case_id") ?: "input", intent.getStringExtra("run_id") ?: "manual") }
             catch (e: Exception) {
                 val code = e.message?.takeIf { it.matches(Regex("[A-Z_]+")) } ?: "EXPERIMENT_ERROR"
-                if (code != "EXPERIMENT_BUSY") File(app.filesDir, "model-experiment-last.txt").writeText("state=ERROR\nerror=$code")
+                val runId = intent.getStringExtra("run_id")?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{1,64}")) } ?: "manual"
+                if (code != "EXPERIMENT_BUSY") File(app.filesDir, "model-experiment-last.txt").writeText("state=ERROR\nrun_id=$runId\nerror=$code")
             }
         }
     }

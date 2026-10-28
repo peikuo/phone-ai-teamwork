@@ -21,6 +21,23 @@
       "depends_on": []
     },
     {
+      "id": "kimi.send.visible.v1",
+      "level": "small",
+      "owner": "local-model",
+      "participant": "kimi",
+      "package": "com.moonshot.kimichat",
+      "version": "3.1.3 (378)",
+      "setup": "Fixed public draft is staged in Kimi; local model only locates the send label and performs no action",
+      "kind": "model_proposal",
+      "objective": "send",
+      "expect": {
+        "proposal": "FOCUS_SEND",
+        "send_label_match": "true"
+      },
+      "capabilities": ["MODEL-04"],
+      "depends_on": ["kimi.public_draft_exact.v1"]
+    },
+    {
       "id": "ds.answer.complete.v1",
       "level": "small",
       "owner": "app-adapter+state",

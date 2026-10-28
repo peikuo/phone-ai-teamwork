@@ -22,7 +22,7 @@ class StepLabTest(unittest.TestCase):
 
     def test_catalog_has_progressive_acyclic_cases(self):
         cases = lab.catalog()
-        self.assertEqual(13, len(cases))
+        self.assertEqual(14, len(cases))
         self.assertEqual('public_draft_check', cases['kimi.public_draft_exact.v1']['kind'])
         self.assertEqual('small', cases['ds.send.visible.v1']['level'])
         self.assertEqual('long', cases['kimi.answer_to_ds.v1']['level'])

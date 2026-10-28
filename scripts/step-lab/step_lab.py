@@ -159,13 +159,16 @@ def wait_report(serial, filename, run_id, timeout):
 def arm_and_wait(serial, case):
     if not front_package(serial, case['package']):
         raise RuntimeError('SETUP_APP_NOT_FOREGROUND')
-    adb(serial, 'shell', 'am', 'broadcast', '-a', 'org.phoneai.teamwork.ARM_INSPECTION',
+    started_ms = int(adb(serial, 'shell', 'date', '+%s%3N').strip())
+    adb(serial, 'shell', 'am', 'broadcast', '--receiver-foreground', '-a', 'org.phoneai.teamwork.ARM_INSPECTION',
         '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver', '--es', 'participant', case['participant'], timeout=12)
     end = time.monotonic() + 12
     while time.monotonic() < end:
         status = adb(serial, 'shell', 'dumpsys', 'activity', 'service',
                      'org.phoneai.teamwork/.phone.InspectionService', timeout=10)
-        if f'phoneai.package={case["package"]}' in status and 'phoneai.truncated=false' in status:
+        observed = re.search(r'phoneai\.observedAt=(\d+)', status)
+        if (f'phoneai.package={case["package"]}' in status and 'phoneai.truncated=false' in status and
+                observed and int(observed.group(1)) >= started_ms):
             input_lengths = [int(x) for x in re.findall(r'phoneai\.input [^\n]*textLength=(\d+)', status)]
             if case['id'] == 'kimi.voice.pause.v1' and input_lengths:
                 raise Blocked('SETUP_MISMATCH:TEXT_INPUT_PRESENT')
@@ -173,6 +176,9 @@ def arm_and_wait(serial, case):
                 raise Blocked('SETUP_MISMATCH:ONE_EMPTY_INPUT_REQUIRED')
             if case['id'] == 'ds.send.visible.v1' and (len(input_lengths) != 1 or input_lengths[0] == 0):
                 raise Blocked('SETUP_MISMATCH:ONE_NONEMPTY_DRAFT_REQUIRED')
+            if case['id'] == 'kimi.send.visible.v1' and (input_lengths != [277] or
+                    status.count('phoneai.publicSend path=') != 1):
+                raise Blocked('SETUP_MISMATCH:PUBLIC_KIMI_DRAFT_AND_SEND_REQUIRED')
             return
         time.sleep(0.5)
     raise RuntimeError('OBSERVATION_UNAVAILABLE')
@@ -213,8 +219,12 @@ def run_case(args):
             if not previous_pass(db, dep, device):
                 raise Blocked(f'DEPENDENCY_NOT_PASSED:{dep}')
         if case['kind'] == 'model_proposal':
+            if case['id'] == 'kimi.send.visible.v1':
+                adb(device, 'shell', 'am', 'start', '-n', 'org.phoneai.teamwork/.ui.MainActivity')
+                adb(device, 'shell', 'am', 'start', '-n', 'com.moonshot.kimichat/.MainActivity')
+                time.sleep(1.5)
             arm_and_wait(device, case)
-            adb(device, 'shell', 'am', 'broadcast', '-a', 'org.phoneai.teamwork.RUN_EXPERIMENT',
+            adb(device, 'shell', 'am', 'broadcast', '--receiver-foreground', '-a', 'org.phoneai.teamwork.RUN_EXPERIMENT',
                 '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver',
                 '--es', 'case_id', case['objective'], '--es', 'run_id', run_id, timeout=12)
             actual = wait_report(device, 'model-experiment-last.txt', run_id, args.timeout)

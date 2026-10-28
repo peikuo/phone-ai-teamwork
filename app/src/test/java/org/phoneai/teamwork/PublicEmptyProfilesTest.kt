@@ -128,6 +128,11 @@ class PublicEmptyProfilesTest {
         val classified = PublicEmptyProfiles.kimi(staged, obs, 1100)
         assertTrue(classified.profileVerified)
         assertFalse(classified.nodes.any { it.role == NodeRole.SEND })
+        val sameLengthForeign = payload.text.replaceFirst('P', 'X')
+        assertEquals(payload.text.length, sameLengthForeign.length)
+        assertFalse(PublicEmptyProfiles.kimi(staged, obs.copy(nodes = nodes.map {
+            if (it.path == "0/7") it.copy(text = sameLengthForeign) else it
+        }), 1100).profileVerified)
     }
 
     @Test fun doubaoStagedDraftMapsOnlyUniqueClickableSendControl() {
