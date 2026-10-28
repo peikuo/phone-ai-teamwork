@@ -1,8 +1,10 @@
-# Phone AI Teamwork — v0.3 POC
+# Phone AI Teamwork — 实验性 Android POC
 
-一个 Android 原生、本地运行的手机 AI App 协作实验。架构以 [v0.3 规格](docs/design-v0.3.md) 为唯一基线。
+项目目标是在手机上运行小模型，让它根据无障碍节点和可选截图提出有限的界面动作；由本地 Agent 按工作流、权限和实时状态核验提议，逐步实现对 Kimi、豆包、DeepSeek 等 AI App 的协作调度。项目采用 Android 原生实现，设计基线见 [v0.3 规格](docs/design-v0.3.md)。
 
-**当前已实测一次 DeepSeek 固定公开题的本地模型定位、Agent 写入和精确回读，尚未发送或完成协作闭环。** 人工打开输入页；真模型推理 16.422 秒；不代表通用模型定位或多 App 能力。已有一次后台 LOW_MEMORY 失败，持续运行仍未知。当前按用户要求暂停手机调试，先完善职责、能力台账与离线规则。
+小模型负责识别界面和提出动作，Agent 负责调度与停止，程序负责构造待发正文和验证执行证据；外部 AI App 负责回答、审阅或综合。各层结果分开记录，以便定位模型判断、手机操作、状态恢复和业务回答的问题。
+
+**当前处于能力验证阶段。** 已实测一次 DeepSeek 固定公开题的本地模型定位、Agent 写入和精确回读；输入页由人打开，尚未发送或完成跨 App 协作闭环。该次真模型推理用时 16.422 秒；另有一次后台推理被 Android 因内存不足终止。完整进度和限制见 [实现状态](docs/poc-status.md)。
 
 先读：[分步测试脚本与入库](docs/step-lab.md) · [谁负责什么](docs/capability-contracts.md) · [未知能力与暂缓功能](docs/capability-gates.md) · [离线回放边界](docs/offline-replay.md) · [实机暂存证据](docs/single-exchange-experiments/01-staged.txt)。
 
