@@ -1,5 +1,11 @@
 # 能力台账与功能依赖
 
+## Current evidence addendum — 2026-10-29
+
+The dated inventory below records the earlier capability assessment. Since then, one fixed public English exchange has been sent, verified, and saved in each of DeepSeek 2.5.2 and Doubao 14.9.0. This is bounded evidence for those two adapters, not a general release of SEND-01 or CAPTURE-01. Kimi 3.1.3 has a staged public draft and a read-only model send-label proposal. Its send label and direct parent reported `clickable=false`; the latest metadata observation recorded draft length only, without exact payload comparison. Kimi send therefore remains blocked. See the [DeepSeek](single-exchange-experiments/02-deepseek-verified-2026-10-29.md), [Doubao](single-exchange-experiments/04-doubao-verified-2026-10-29.md), and [Kimi geometry](model-experiments/11-kimi-send-geometry-2026-10-29.md) evidence.
+
+A Kimi coordinate gesture requires a dedicated version-pinned policy, canonical draft and empty-thread proof, target-window and touch-region evidence, fresh re-observation before dispatch, a persisted intent, and independent message and reply verification. The current observations do not establish the touch target. The three-app seven-step flow, five public scenario repetitions, and privacy-reviewed video remain gated by these capabilities.
+
 更新：2026-09-22。按用户要求，当前暂停手机调试。先做职责边界、确定性流程与离线回放；依赖未知手机/模型能力的具体功能，等待能力确认后再实现。本文与 `CapabilityCatalog.kt` 的条目对应，App 首页提供只读能力状态页。
 
 “能力确认”与“功能完成”分开：能力验证只提供实现依据；通过后还需实现功能并完成集成验收。修改状态不能绕过 Guardrail。现阶段代码中的 deferred 列表全部阻塞，不提供手动开关，也不按本地测试通过自动解锁。未来凭证据审查修改台账和对应实现。
