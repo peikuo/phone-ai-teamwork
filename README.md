@@ -6,7 +6,7 @@ The on-device model identifies UI elements and proposes actions. The Agent manag
 
 **This project is still validating core capabilities.** One device experiment used the local model to locate a DeepSeek input field; the Agent then entered a fixed public prompt and read it back exactly. A person opened the input screen. The prompt was not sent, and cross-app collaboration has not been demonstrated. That model inference took 16.422 seconds; a separate background inference was terminated by Android due to insufficient memory. See the [POC status](docs/poc-status.md) for current evidence and limitations.
 
-Start with the [step-based test scripts](docs/step-lab.md), [responsibility contracts](docs/capability-contracts.md), [unverified capabilities and deferred features](docs/capability-gates.md), [offline replay boundaries](docs/offline-replay.md), and [staged device evidence](docs/single-exchange-experiments/01-staged.txt). Some linked project notes are currently in Chinese.
+Start with the [planning and result flow](docs/planning-and-result-flow.md), [step-based test scripts](docs/step-lab.md), [responsibility contracts](docs/capability-contracts.md), [unverified capabilities and deferred features](docs/capability-gates.md), [offline replay boundaries](docs/offline-replay.md), and [staged device evidence](docs/single-exchange-experiments/01-staged.txt). Some linked project notes are currently in Chinese.
 
 ## What works today
 
