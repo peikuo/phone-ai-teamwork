@@ -4,6 +4,8 @@
 
 The catalog now has 13 cases. `kimi.public_draft_exact.v1` is a read-only small step: it runs the app's two-observation canonical-draft check against the already staged fixed public Kimi task. An initial run recorded `state=VERIFIED`, but Astra found that the host runner could misattribute a stale report; that run is diagnostic evidence only. The corrected runner passes and requires a unique run ID. After APK reinstall, one attempt timed out while the accessibility service was still binding. After the operator restored the service, Xiaomi's background freeze skipped a debug broadcast. The runner now briefly opens only Phone AI Teamwork and returns to Kimi, waits for the page to settle, then sends a foreground broadcast. A fully correlated real run passed with `state=VERIFIED`, `inputLength=277`, `submitted=false`, `storeChanged=false`, and zero screenshots (local SQLite run ID `28591f5fe72d4f829ef58729`). This verifies only the draft and bound empty thread at that moment. It does not authorize Kimi send or count toward the five-question demonstration. The host screenshot path remains disabled.
 
+Two further correlated runs (`c0cebb335507474aad83bc54` and `f2d55c7eb97e4cdb8cd8f63c`) also passed within the same hour, giving the latest three runs of this specific read-only small step consecutive PASS results. They reused the same staged public draft; they are repeat observations, not three independent sends or three different questions.
+
 更新：2026-09-23。用例目录：[`cases.json`](../scripts/step-lab/cases.json)；运行器：[`step_lab.py`](../scripts/step-lab/step_lab.py)。这是一套真实小模型实验的测试入口，不把 Codex 判断或模拟提议算作小模型成绩。当前 12 个用例：3 个已接线的只读小步骤、1 个已接线的固定公开题暂存中步骤，以及 8 个标为能力待确认的后续小步骤、中步骤和 Kimi → DeepSeek 长步骤。
 
 ## 责任与判定
