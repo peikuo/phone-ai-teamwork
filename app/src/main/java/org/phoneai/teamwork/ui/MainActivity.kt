@@ -2,6 +2,7 @@ package org.phoneai.teamwork.ui
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -147,7 +148,7 @@ class MainActivity : Activity() {
     }
     private fun inspectPage() {
         page = "inspect"; frame("三款 App 单次观察")
-        text("只观察你选中的 App，最长 30 秒、一次窗口。请先手动打开要检查的页面。不会点击或输入。控件角色目前全部视为 UNKNOWN。")
+        text("可从这里打开指定 App；观察只读取你选中的 App，最长 30 秒、一次窗口。启动不代表已经进入正确会话，也不会自动点击或输入。")
         text("默认包名来自本次实机。其他渠道安装可通过构建参数覆盖；未绑定项不会扫描其他 App。")
         text("Accessibility：${if (InspectionService.instance == null) "未连接" else "已连接"}")
         button("打开无障碍设置（由你手动授权）") { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
@@ -155,6 +156,19 @@ class MainActivity : Activity() {
         Targets.all.forEach { target ->
             val participant = target.installed(this)
             text("${target.label}\n包名：${target.configuredPackage}\n版本：${participant?.version ?: "未绑定 / 未安装 / 不可见，未知"}", 17f)
+            button("打开 ${target.label}（不需要无障碍）") {
+                val allowed = setOf("com.moonshot.kimichat", "com.deepseek.chat", "com.larus.nova")
+                if (participant == null || participant.packageName !in allowed ||
+                    participant.packageName != target.configuredPackage) {
+                    toast("目标 App 未绑定或不在允许列表内")
+                    return@button
+                }
+                val launch = packageManager.getLaunchIntentForPackage(participant.packageName)
+                if (launch == null) { toast("目标 App 没有可启动入口"); return@button }
+                try { startActivity(launch) }
+                catch (_: ActivityNotFoundException) { toast("目标 App 启动入口不可用") }
+                catch (_: SecurityException) { toast("系统拒绝启动目标 App") }
+            }
             button("观察 ${target.label} 下一次窗口") {
                 if (participant == null) { toast("请先按 docs/device-check.md 配置实际包名并重新构建。"); return@button }
                 val service = InspectionService.instance ?: run { toast("请先手动开启无障碍服务"); return@button }
