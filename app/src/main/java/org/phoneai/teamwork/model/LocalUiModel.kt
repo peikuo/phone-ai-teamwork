@@ -60,7 +60,8 @@ class LocalUiModel(private val app: Context) : UiModel {
                 }
                 ensureActive(); check(!cancelled.get()) { "CANCELLED" }
                 val scaled = image?.let { source ->
-                    val ratio = minOf(1f, 1024f / maxOf(source.width, source.height))
+                    // Bound image tokens and keep the target window bitmap on-device only.
+                    val ratio = minOf(1f, 448f / maxOf(source.width, source.height))
                     Bitmap.createScaledBitmap(source, (source.width * ratio).toInt().coerceAtLeast(1), (source.height * ratio).toInt().coerceAtLeast(1), true)
                 }
                 val rgb = scaled?.let { bitmap ->
@@ -74,7 +75,7 @@ class LocalUiModel(private val app: Context) : UiModel {
                 ensureActive(); check(!cancelled.get()) { "CANCELLED" }
                 val proposal = parse(output, context, observation)
                 val outputObject = runCatching { org.json.JSONTokener(output.trim()).nextValue() as? JSONObject }.getOrNull()
-                lastMetrics = "package=${observation.packageName}\nversion=${observation.appVersion}\nbackend=${info.backend}\nload_ms=$loadMs（0 表示复用实例）\nstep_ms=${SystemClock.elapsedRealtime() - inferenceStart}\nsampled_peak_pss_kib=${peakPss.get()}（250ms 采样，非精确峰值）\nimage=${image != null}\nprojector_loaded=$loadedWithVision\noutput_chars=${output.length}\noutput_starts_object=${output.trimStart().startsWith("{")}\noutput_has_think_tag=${"<think>" in output}\noutput_key_count=${outputObject?.length() ?: -1}\noutput_has_action=${outputObject?.has("action") == true}\noutput_has_node=${outputObject?.has("node") == true}\noutput_has_payload=${outputObject?.has("payload") == true}\nparse=${proposal.reason}"
+                lastMetrics = "package=${observation.packageName}\nversion=${observation.appVersion}\nbackend=${info.backend}\nload_ms=$loadMs（0 表示复用实例）\nstep_ms=${SystemClock.elapsedRealtime() - inferenceStart}\nsampled_peak_pss_kib=${peakPss.get()}（250ms 采样，非精确峰值）\nimage=${image != null}\nimage_width=${scaled?.width ?: 0}\nimage_height=${scaled?.height ?: 0}\nprojector_loaded=$loadedWithVision\noutput_chars=${output.length}\noutput_starts_object=${output.trimStart().startsWith("{")}\noutput_has_think_tag=${"<think>" in output}\noutput_key_count=${outputObject?.length() ?: -1}\noutput_has_action=${outputObject?.has("action") == true}\noutput_has_node=${outputObject?.has("node") == true}\noutput_has_payload=${outputObject?.has("payload") == true}\nparse=${proposal.reason}"
                 proposal
             } catch (e: CancellationException) { nativeCancelSafely(); throw e }
             catch (e: Throwable) {

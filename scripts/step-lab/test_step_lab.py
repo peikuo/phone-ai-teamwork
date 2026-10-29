@@ -22,11 +22,14 @@ class StepLabTest(unittest.TestCase):
 
     def test_catalog_has_progressive_acyclic_cases(self):
         cases = lab.catalog()
-        self.assertEqual(14, len(cases))
+        self.assertEqual(15, len(cases))
         self.assertEqual('public_draft_check', cases['kimi.public_draft_exact.v1']['kind'])
         self.assertEqual('small', cases['ds.send.visible.v1']['level'])
         self.assertEqual('long', cases['kimi.answer_to_ds.v1']['level'])
         self.assertIn('verified_kimi_message_in_store', cases['kimi.answer_to_ds.v1']['blocked_until'])
+        image_cases = [case for case in cases.values() if case.get('with_image')]
+        self.assertEqual(['kimi.send.image.v1'], [case['id'] for case in image_cases])
+        self.assertEqual('send', image_cases[0]['objective'])
 
     def test_oracle_separates_model_failure_from_setup_and_success(self):
         expected = {'proposal': 'FOCUS_INPUT', 'selected_editable': 'true'}

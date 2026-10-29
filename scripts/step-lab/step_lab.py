@@ -32,6 +32,8 @@ def catalog():
         assert re.fullmatch(r'[a-z0-9_.-]+', c['id'])
         assert c['level'] in LEVELS and c['kind'] in {'model_proposal', 'public_stage', 'public_draft_check', 'relay', 'capability_pending'}
         assert c['owner'] and c['setup'] and c['expect'] and c['capabilities']
+        if c.get('with_image'):
+            assert c['id'] == 'kimi.send.image.v1' and c['package'] == 'com.moonshot.kimichat' and c['objective'] == 'send'
         for dep in c['depends_on']:
             assert dep in by_id and LEVELS[by_id[dep]['level']] <= LEVELS[c['level']]
     visiting, visited = set(), set()
@@ -161,7 +163,8 @@ def arm_and_wait(serial, case):
         raise RuntimeError('SETUP_APP_NOT_FOREGROUND')
     started_ms = int(adb(serial, 'shell', 'date', '+%s%3N').strip())
     adb(serial, 'shell', 'am', 'broadcast', '--receiver-foreground', '-a', 'org.phoneai.teamwork.ARM_INSPECTION',
-        '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver', '--es', 'participant', case['participant'], timeout=12)
+        '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver', '--es', 'participant', case['participant'],
+        '--ez', 'with_image', 'true' if case.get('with_image') else 'false', timeout=12)
     end = time.monotonic() + 12
     while time.monotonic() < end:
         status = adb(serial, 'shell', 'dumpsys', 'activity', 'service',
@@ -179,6 +182,14 @@ def arm_and_wait(serial, case):
             if case['id'] == 'kimi.send.visible.v1' and (input_lengths != [277] or
                     status.count('phoneai.publicSend path=') != 1):
                 raise Blocked('SETUP_MISMATCH:PUBLIC_KIMI_DRAFT_AND_SEND_REQUIRED')
+            if case['id'] == 'kimi.send.image.v1':
+                if input_lengths != [277] or status.count('phoneai.publicSend path=') != 1:
+                    raise Blocked('SETUP_MISMATCH:PUBLIC_KIMI_DRAFT_AND_SEND_REQUIRED')
+                if 'phoneai.screenshot=当前窗口截图，仅内存保存' not in status:
+                    if 'phoneai.screenshot=截图中' in status:
+                        time.sleep(0.5)
+                        continue
+                    raise Blocked('WINDOW_SCREENSHOT_UNAVAILABLE')
             return
         time.sleep(0.5)
     raise RuntimeError('OBSERVATION_UNAVAILABLE')
@@ -219,14 +230,15 @@ def run_case(args):
             if not previous_pass(db, dep, device):
                 raise Blocked(f'DEPENDENCY_NOT_PASSED:{dep}')
         if case['kind'] == 'model_proposal':
-            if case['id'] == 'kimi.send.visible.v1':
+            if case['id'] in {'kimi.send.visible.v1', 'kimi.send.image.v1'}:
                 adb(device, 'shell', 'am', 'start', '-n', 'org.phoneai.teamwork/.ui.MainActivity')
                 adb(device, 'shell', 'am', 'start', '-n', 'com.moonshot.kimichat/.MainActivity')
                 time.sleep(1.5)
             arm_and_wait(device, case)
             adb(device, 'shell', 'am', 'broadcast', '--receiver-foreground', '-a', 'org.phoneai.teamwork.RUN_EXPERIMENT',
                 '-n', 'org.phoneai.teamwork/.model.ExperimentReceiver',
-                '--es', 'case_id', case['objective'], '--es', 'run_id', run_id, timeout=12)
+                '--es', 'case_id', case['objective'], '--es', 'run_id', run_id,
+                '--ez', 'with_image', 'true' if case.get('with_image') else 'false', timeout=12)
             actual = wait_report(device, 'model-experiment-last.txt', run_id, args.timeout)
         elif case['kind'] == 'public_stage':
             previous = fields(report(device, 'single-exchange-last.txt')).get('taskId')
@@ -271,7 +283,8 @@ def run_case(args):
         status, reason = 'BLOCKED', str(e)
     except Exception as e:
         status, reason = 'ERROR', str(e).splitlines()[0][:180]
-    metrics = {k: actual.get(k) for k in ('backend', 'load_ms', 'step_ms', 'sampled_peak_pss_kib', 'image', 'parse') if k in actual}
+    metrics = {k: actual.get(k) for k in ('backend', 'load_ms', 'step_ms', 'sampled_peak_pss_kib', 'image',
+                                         'image_width', 'image_height', 'parse') if k in actual}
     db.execute('UPDATE runs SET device=?,app_version=?,ended_at=?,status=?,reason=?,actual_json=?,metrics_json=?,screenshot_count=? WHERE run_id=?',
                (device, version, utc(), status, reason, json.dumps({'fields': actual, 'mismatches': mismatches}, ensure_ascii=False),
                 json.dumps(metrics, ensure_ascii=False), 0, run_id))

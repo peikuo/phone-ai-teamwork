@@ -19,15 +19,16 @@ object ModelExperiment {
     suspend fun run(app: TeamworkApp, withImage: Boolean, caseId: String = "input", runId: String = "manual"): String {
         require(runId.matches(Regex("[A-Za-z0-9_-]{1,64}"))) { "INVALID_RUN_ID" }
         require(caseId in setOf("input", "send")) { "UNKNOWN_CASE" }
+        require(!withImage || caseId == "send") { "IMAGE_ONLY_FOR_PUBLIC_SEND_CASE" }
         check(app.operationBusy.compareAndSet(false, true)) { "EXPERIMENT_BUSY" }
         var bitmap: Bitmap? = null
         try {
             val sample = withContext(Dispatchers.Main) {
                 val s = checkNotNull(InspectionService.instance?.lastSample) { "OBSERVATION_REQUIRED" }
-                if (withImage) bitmap = checkNotNull(s.image) { "SCREENSHOT_REQUIRED" }.copy(Bitmap.Config.ARGB_8888, false)
                 s
             }
             val participant = Targets.all.single { it.configuredPackage == sample.observation.packageName }
+            require(!withImage || participant.id == "kimi") { "IMAGE_ONLY_FOR_PUBLIC_KIMI" }
             val observation = if (caseId == "send" && participant.id == "kimi") {
                 app.recovered.await()
                 val task = app.store.all().single { it.goal == DeepSeekProbeProfile.GOAL &&
@@ -46,6 +47,9 @@ object ModelExperiment {
                 require(app.store.get(task.id) == task) { "STATE_CHANGED" }
                 classified
             } else sample.observation
+            if (withImage) bitmap = withContext(Dispatchers.Main) {
+                checkNotNull(sample.image) { "SCREENSHOT_REQUIRED" }.copy(Bitmap.Config.ARGB_8888, false)
+            }
             val context = ControlContext(observation.taskId, "inspection-only", participant.id, null,
                 if (caseId == "send") setOf(Action.FOCUS_SEND, Action.PAUSE) else setOf(Action.FOCUS_INPUT, Action.PAUSE), 1)
             File(app.filesDir, "model-experiment-last.txt").writeText("state=RUNNING\nrun_id=$runId\ncase=$caseId\npackage=${sample.observation.packageName}\nimage=$withImage")
