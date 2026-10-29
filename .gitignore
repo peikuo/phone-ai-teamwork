@@ -7,6 +7,21 @@ local.properties
 *.gguf
 *.task
 captures/
+# Private device evidence and credentials require explicit review before any publication.
+*.mp4
+*.mov
+*.jpg
+*.jpeg
+*.webp
+*.png
+*.sqlite
+*.db
+.env
+.env.*
+*.env
+*.log
+*.pem
+*.key
 # Local build and test byproducts
 .kotlin/
 app/.cxx/
